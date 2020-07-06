@@ -1,0 +1,45 @@
+{
+  "name": "can-i-have-that-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server/build/app.js",
+  "scripts": {
+    "clean": "rm -rf client/build client/dist server/build",
+    "tsc": "tsc --build client server",
+    "webpack": "webpack --config client/webpack.config.js",
+    "copy-client-statics": "cp -r client/static/* client/dist/",
+    "build-client": "tsc --build client && npm run webpack -- --mode production  && npm run copy-client-statics",
+    "build-dev": "tsc --build client && npm run webpack -- --mode development && npm run copy-client-statics",
+    "dev": "npm run build-dev && ts-node-dev --expose-gc --inspect --respawn --transpileOnly ./server/src/app.ts",
+    "build-prod": "npm run tsc && npm run webpack -- --mode production && npm run copy-client-statics",
+    "prod": "npm run build-prod && node ./server/build/app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/johnameyer/can-i-have-that-server.git"
+  },
+  "author": "John Meyer",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/johnameyer/can-i-have-that-server/issues"
+  },
+  "homepage": "https://github.com/johnameyer/can-i-have-that-server#readme",
+  "dependencies": {
+    "@types/express": "^4.17.4",
+    "@types/socket.io": "^2.1.4",
+    "@types/socket.io-client": "^1.4.32",
+    "can-i-have-that": "^0.0.0",
+    "drag-drop-regions": "^1.0.0",
+    "express": "^4.17.1",
+    "socket.io": "^2.3.0",
+    "socket.io-client": "^2.3.0",
+    "typescript": "^3.8.3",
+    "webpack": "^4.42.1"
+  },
+  "devDependencies": {
+    "html-webpack-plugin": "^4.3.0",
+    "ts-node-dev": "^1.0.0-pre.44",
+    "webpack-cli": "^3.3.11"
+  },
+  "sideEffects": false
+}

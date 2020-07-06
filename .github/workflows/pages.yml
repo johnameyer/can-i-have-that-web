@@ -1,0 +1,57 @@
+name: pages
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [12.x]
+
+    steps:
+      - uses: actions/checkout@v1
+
+      - name: Cache Node Modules
+        uses: actions/cache@v1
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Generate
+        run: npm run build-client
+        env:
+          BASE_URL: https://johnmeyer.dev/can-i-have-that-web/
+
+      - name: Commit Files
+        run: |
+          git checkout --orphan gh-pages
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          find * -maxdepth 0 ! -name 'client' -exec rm -r {} \;
+          find * -maxdepth 1 -mindepth 1 ! -wholename 'client/dist' -exec rm -r {} \;
+          mv client/dist/* ./
+          git add -A
+          git commit -m "Update live"
+
+      - name: Push Changes
+        uses: ad-m/github-push-action@master
+        with:
+          branch: gh-pages
+          force: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Restore
+        uses: actions/checkout@v1

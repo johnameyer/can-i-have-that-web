@@ -1,0 +1,30 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Compile",
+            "type": "shell",
+            "command": "npx tsc --build client server",
+            "problemMatcher": []
+        },
+        
+        {
+            "label": "Package",
+            "type": "shell",
+            "command": "npx webpack --config client/webpack.config.js --mode production",
+            "problemMatcher": [],
+            "dependsOn": ["Compile"]
+        },
+        {
+            "label": "Copy Static Assets",
+            "type": "shell",
+            "command": "cp -r client/static/* client/dist/",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "dependsOrder": "sequence",
+            "dependsOn": ["Package", "Copy Static Assets"]
+        }
+    ]
+}

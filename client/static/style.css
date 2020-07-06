@@ -1,0 +1,70 @@
+.container {
+    display: grid;
+    grid-gap: .25rem;
+    grid-template-columns: repeat(auto-fill, minmax(calc(3/4 * 5rem), 1fr) ) ;
+    min-height: 5rem;
+    border: solid black 1px;
+    padding-top: .5rem;
+    padding-bottom: .5rem;
+    align-items: center;
+    justify-items: center;
+}
+
+.container.invalid {
+    border-color: #f11;
+}
+
+.card {
+    height: 5rem;
+}
+
+.drag-card:hover {
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .25rem #14f);
+}
+
+.drag-card:focus-within {
+    outline: none;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .5rem #14f);
+}
+
+.drag-card.fixed:focus-within, .drag-card.fixed:hover {
+    outline: none;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .5rem #777);
+}
+
+.drag-card.selected:focus-within {
+    outline: none;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .5rem #e70);
+}
+
+#cards {
+    margin: 10px;
+    height: calc(100vh - 20px);
+    width: calc(100vw - 20px);
+    display: flex;
+    flex-direction: column;
+}
+
+#events {
+    overflow-y: scroll;
+    flex-basis: 1;
+    flex-grow: 1;
+    max-height: 50vh;
+}
+
+#form {
+    flex-basis: 1;
+}
+
+body {
+    margin: 0px;
+    padding: 0px;
+}
