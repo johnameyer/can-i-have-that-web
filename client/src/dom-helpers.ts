@@ -18,9 +18,9 @@ export const getFormsRegion = () => {
 
 function cardToURL(card: Card): string {
     if(card.rank == Rank.JOKER) {
-        return '/res/img/black_joker.svg';
+        return 'img/black_joker.svg';
     }
-    let str = '/res/img/';
+    let str = 'img/';
     str += ({
         '2': '2',
         '3': '3',
