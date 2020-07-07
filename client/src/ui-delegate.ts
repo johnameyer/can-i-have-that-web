@@ -1,24 +1,30 @@
-import { Card, ThreeCardSet, FourCardRun, Run, Message } from "can-i-have-that";
-import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input } from "./dom-helpers";
-import { dragSegments } from "drag-drop-regions";
+import { Card, ThreeCardSet, FourCardRun, Run, Message, DealMessage } from 'can-i-have-that';
+import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input } from './dom-helpers';
+import { dragSegments } from 'drag-drop-regions';
+import { OrderingData } from './shared/ordering-data';
+import { HandlerCustomData } from 'can-i-have-that/dist/cards/handlers/handler-data';
 
 type Handler<T> = (response: T) => void;
 
 export namespace UIDelegate {
+    //TODO move up into main library
     export function message(message: Message) {
         console.log(message);
         appendMessage(message.message);
     }
 
-    export function wantCard(card: Card, hand: Card[], handler: Handler<[boolean]>) {
+    export function wantCard(card: Card, hand: Card[], data: OrderingData, handler: Handler<[boolean, HandlerCustomData]>) {
+        hand = data.hand || hand;
         const container = create('div');
-        container.append(p("You have"));
-        container.append(cardDisplay(hand));
+        container.append(p('You have'));
+        const dragSegment = dragSegments(cardContainer, [hand], cardDragItem);
+        container.append(dragSegment);
         const cardImage = cardItem(card);
         cardImage.style.verticalAlign = 'middle';
         container.append(p('Do you want ', cardImage, '?'));
         const handleResponse = (response: boolean) => () => {
-            handler([response]);
+            data.hand = hand;
+            handler([response, data]);
             container.remove();
             appendMessage('You ' + (response ? 'picked ' : 'did not pick ') + 'up the ' + card.toString());
         }
@@ -27,15 +33,18 @@ export namespace UIDelegate {
         getFormsRegion().append(container);
     }
 
-    export function wantToGoDown(hand: Card[], handler: Handler<boolean>) {
+    export function wantToGoDown(hand: Card[], data: OrderingData, handler: Handler<boolean>) {
+        hand = data.hand || hand;
         const container = create('div');
-        container.append(p('Do you want to go down?'));
-        container.append(p("You have"));
-        container.append(cardDisplay(hand));
+        container.append(p('You have'));
+        const dragSegment = dragSegments(cardContainer, [hand], cardDragItem);
+        container.append(dragSegment);
         const handleResponse = (response: boolean) => () => {
+            data.hand = hand;
             handler(response);
             container.remove();
         }
+        container.append(p('Do you want to go down?'));
         container.append(button('Yes', handleResponse(true)));
         container.append(button('No', handleResponse(false)));
         getFormsRegion().append(container);
@@ -53,10 +62,11 @@ export namespace UIDelegate {
         getFormsRegion().append(container);
     }
 
-    export function selectCards(cards: Card[], num: 3 | 4, handler: Handler<Card[]>) {
+    export function selectCards(hand: Card[], num: 3 | 4, data: OrderingData, handler: Handler<Card[]>) {
+        hand = data.hand || hand;
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please select cards in the '  + (num === 3 ? '3 of a kind ' : '4 card run ') + 'or none to exit'));
+        form.append(p('Please drag cards in the '  + (num === 3 ? '3 of a kind ' : '4 card run ') + 'into the area or drag none to escape going down'));
         const validate = (input: Card[]) => {
             if (input.length === 0) {
                 return true;
@@ -74,6 +84,7 @@ export namespace UIDelegate {
             const result = validate(toPlayCards);
             if(result === true) {
                 form.remove();
+                data.hand = hand;
                 handler(toPlayCards);
                 if(toPlayCards.length) {
                     appendMessage('You played ' + toPlayCards.toString());
@@ -83,24 +94,26 @@ export namespace UIDelegate {
                 form.append(error);
             }
         }
-        const options = dragSegments(cardContainer, [[...cards], []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
+        const options = dragSegments(cardContainer, [hand, []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
         form.append(options);
         getFormsRegion().append(form);        
     }
 
-    export function discardChoice(cards: Card[], live: Card[], handler: Handler<Card>) {
+    export function discardChoice(hand: Card[], live: Card[], data: OrderingData, handler: Handler<Card>) {
+        hand = data.hand || hand;
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please select a card to discard'));
+        form.append(p('Please drag or move a card to the area below to discard'));
         const validate = (choice: Card) => !live.some((card) => choice.equals(card));
         const error = p('');
         const handleResponse = (selected: Card[][]) => {
             const toDiscard = selected[1][0];
             if(!toDiscard) {
-                error.innerText = 'Must discard something';
+                error.innerText = 'Must discard a card';
                 return;
             }
             if(validate(toDiscard)) {
+                data.hand = hand;
                 handler(toDiscard);
                 form.remove();
                 appendMessage('You discarded ' + toDiscard.toString());
@@ -110,12 +123,12 @@ export namespace UIDelegate {
             }
         }
 
-        const options = dragSegments(cardContainer,[[...cards], []], cardDragItem, handleResponse, [-1, 1], [() => true, ([card]) => card ? validate(card) : false]);
+        const options = dragSegments(cardContainer,[hand, []], cardDragItem, handleResponse, [-1, 1], [() => true, ([card]) => card ? validate(card) : false]);
         form.append(options);
         getFormsRegion().append(form);
     }
 
-    export function insertWild(run: Card[], handler: Handler<number>) {
+    export function insertWild(run: Card[], data: OrderingData, handler: Handler<number>) {
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
         form.append(p('Please choose where to insert your wild cards'));
@@ -154,93 +167,73 @@ export namespace UIDelegate {
         getFormsRegion().append(form);
     }
 
-    export function wantToPlay(played: Run[], cards: Card[], handler: Handler<boolean>) {
+    export function wantToPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<boolean>) {
+        hand = data.hand || hand;
         const container = create('div');
-        container.append(p('Would you like to play a card?'));
-        container.append(p("You have"));
-        container.append(cardDisplay(cards));
-        container.append(p('Others have played'));
-        container.append(p(...played.map(run => [run.toString(), create('br')]).flat()));
-        //TODO own hand shows up
+        container.append(p('You have'));
+        container.append(cardDisplay(hand));
+        container.append(p('Runs on the table'));
+        for(let run of runs) {
+            const runDisplay = cardDisplay(run.cards);
+            container.append(runDisplay);
+        }
         const handleResponse = (response: boolean) => () => {
+            data.hand = hand;
             handler(response);
             container.remove();
         }
+        container.append(p('Would you like to play a card on a run?'));
         container.append(button('Yes', handleResponse(true)));
         container.append(button('No', handleResponse(false)));
         getFormsRegion().append(container);
     }
 
-    export function whichPlay(runs: Run[], cards: Card[], handler: Handler<Run>) {
+    export function whichPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<Run>) {
+        hand = data.hand || hand;
         const container = create('div');
-        container.append(p("You have"));
-        container.append(cardDisplay(cards));
-        container.append(p('Others have played ' + runs.map(run => run.toString()).join(', ')));
-        const options = create('select');
-        for(let i = 0; i < runs.length; i++) {
-            const option = create('option');
-            option.innerText = runs[i].toString();
-            option.value = String(i);
-            options.append(option);
-        }
-        container.append(options);
-        const handleResponse = () => {
-            handler(runs[Number(options.value)]);
+        container.append(p('You have'));
+        container.append(cardDisplay(hand));
+        container.append(p('Select the run you would like to play on first'));
+        const handleResponse = (index: number) => () => {
+            data.hand = hand;
+            handler(runs[index]);
             container.remove();
         }
-        const submit = button('Submit', handleResponse);
-        container.append(submit);
+        for(let i = 0; i < runs.length; i++) {
+            const run = runs[i];
+            const runDisplay = cardDisplay(run.cards);
+            runDisplay.onclick = handleResponse(i);
+            container.append(runDisplay);
+        }
         getFormsRegion().append(container);
     }
 
-    export function cardsToPlay(cards: Card[], run: Run, handler: Handler<Card[]>) {
+    export function cardsToPlay(hand: Card[], run: Run, data: OrderingData, handler: Handler<Card[]>) {
+        hand = data.hand || hand;
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please select cards to add to the ' + run.toString()));
-        const options = create('div');
-        for(let i = 0; i < cards.length; i++) {
-            const option = create('input');
-            option.type = 'checkbox';
-            option.name = String(i);
-            option.id = 'select-card-' + i;
-            options.append(option);
-            const label = create('label');
-            label.innerText = cards[i].toString();
-            label.htmlFor = option.id;
-            options.append(label);
-        }
-        form.append(options);
-        const validate = (input: Card[]): true | Error => {
-            return true;
+        form.append(p('Please drag the cards to add to'));
+        form.append(cardDisplay(run.cards));
+        const validate = (input: Card[]) => {
+            if (input.length === 0) {
+                return true;
+            }
+            try {
+                const runClone = run.clone();
+                for(let card of input) {
+                    runClone.add(card);
+                }
+                return true;
+            } catch (e) {
+                return e;
+            }
         };
-        
-        // const validate = (input: Card[]) => {
-        //     if (input.length === 0) {
-        //         return true;
-        //     }
-        //     try {
-        //         run.clone().add(...input);
-        //         return true;
-        //     } catch (e) {
-        //         return e;
-        //     }
-        // };
-        // const validate = (input: Card | null) => {
-        //     if (!input) {
-        //         return true;
-        //     }
-        //     try {
-        //         run.clone().add(input);
-        //     } catch (e) {
-        //         return e;
-        //     }
-        // };
         const error = p('');
-        const handleResponse = () => {
-            const toPlay = cards.map((_, i) => i).filter(i => (form[i] as HTMLInputElement).checked);
-            const toPlayCards = cards.filter((_, i) => (form[i] as HTMLInputElement).checked);
+        const handleResponse = (response: Card[][]) => {
+            const toPlayCards = response[1];
             const result = validate(toPlayCards);
             if(result === true) {
+                data.hand = hand;
                 handler(toPlayCards);
                 form.remove();
                 if(toPlayCards.length) {
@@ -251,8 +244,8 @@ export namespace UIDelegate {
                 form.append(error);
             }
         }
-        const submitName = button('Submit', handleResponse);
-        form.append(submitName);
+        const options = dragSegments(cardContainer, [hand, []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
+        form.append(options);
         getFormsRegion().append(form);
     }
 

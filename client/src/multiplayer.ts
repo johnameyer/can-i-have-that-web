@@ -46,14 +46,14 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             hand = hand.map(Card.fromObj);
 
             const handler = (response: [boolean]) => socket.emit(EventType.WANT_CARD, response[0]);
-            UIDelegate.wantCard(card, hand, handler);
+            // UIDelegate.wantCard(card, hand, handler);
         });
 
         socket.on(EventType.GO_DOWN, function(hand: Card[]) {
             hand = hand.map(Card.fromObj);
 
             const handler = (response: boolean) => socket.emit(EventType.GO_DOWN, response);
-            UIDelegate.wantToGoDown(hand, handler);
+            // UIDelegate.wantToGoDown(hand, handler);
         });
 
         socket.on(EventType.MOVE_TO_TOP, function() {
@@ -65,7 +65,7 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             cards = cards.map(Card.fromObj);
             
             const handler = (response: Card[]) => socket.emit(EventType.SELECT_CARDS, mapToIndices(cards, response));
-            UIDelegate.selectCards(cards, num, handler);
+            // UIDelegate.selectCards(cards, num, handler);
         });
 
         socket.on(EventType.DISCARD_CHOICE, function(cards: Card[], live: Card[]) {
@@ -73,14 +73,14 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             live = live.map(Card.fromObj);
             
             const handler = (response: Card) => socket.emit(EventType.DISCARD_CHOICE, cards.findIndex(card => card.equals(response)));
-            UIDelegate.discardChoice(cards, live, handler);
+            // UIDelegate.discardChoice(cards, live, handler);
         });
 
         socket.on(EventType.INSERT_WILD, function(run: Card[]) {
             run = run.map(Card.fromObj);
 
             const handler = (response: number) => socket.emit(EventType.INSERT_WILD, response);
-            UIDelegate.insertWild(run, handler);
+            // UIDelegate.insertWild(run, handler);
         });
 
         socket.on(EventType.WOULD_PLAY, function(played: Run[], cards: Card[]) {
@@ -88,7 +88,7 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             played = played.map(runFromObj);
             
             const handler = (response: boolean) => socket.emit(EventType.WOULD_PLAY, response);
-            UIDelegate.wantToPlay(played, cards, handler);
+            // UIDelegate.wantToPlay(played, cards, handler);
         });
 
         socket.on(EventType.WHICH_PLAY, function(runs: Run[], cards: Card[]) {
@@ -96,7 +96,7 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             cards = cards.map(Card.fromObj);
             
             const handler = (response: Run) => socket.emit(EventType.WHICH_PLAY, mapToIndex(runs, response));
-            UIDelegate.whichPlay(runs, cards, handler);
+            // UIDelegate.whichPlay(runs, cards, handler);
         } );
         
         socket.on(EventType.CARDS_TO_PLAY, function(cards: Card[], run: Run) {
@@ -104,7 +104,7 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             run = runFromObj(run);
             
             const handler = (response: Card[]) => socket.emit('cardsToPlay', mapToIndices(cards, response));
-            UIDelegate.cardsToPlay(cards, run, handler);
+            // UIDelegate.cardsToPlay(cards, run, handler);
         } );
     };
 };
