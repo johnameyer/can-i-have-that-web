@@ -9,8 +9,8 @@ export class WebHandler extends ClientHandler {
     }
 
     reconcileDataAndHand(hand: Card[], data: HandlerCustomData) {
-        if(!data.run) {
-            data.run = hand;
+        if(!data.hand) {
+            data.hand = hand;
         } else {
             // TODO handle duplicates?
             for(let i = 0; i < hand.length; i++) {
@@ -32,7 +32,6 @@ export class WebHandler extends ClientHandler {
         this.reconcileDataAndHand(hand, data);
         return new Promise<[boolean, HandlerCustomData]>((resolve) => UIDelegate.wantCard(card, hand, data as OrderingData, resolve));
     }
-
     
     async turn(gameState: HandlerData): Promise<{ toDiscard: Card | null, toPlay: Run[][], data?: HandlerCustomData } | null> {
         this.reconcileDataAndHand(gameState.hand, gameState.data);
