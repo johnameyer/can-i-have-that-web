@@ -6,6 +6,10 @@
     <base href="<%= htmlWebpackPlugin.options.baseUrl %>" />
     <link rel="stylesheet" href="style.css"></link>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <% if(htmlWebpackPlugin.options.logRocketId) { %>
+    <script src="https://cdn.lr-ingest.io/LogRocket.min.js" crossorigin="anonymous"></script>
+    <script>function initLogRocket() { window.LogRocket && window.LogRocket.init('<%= htmlWebpackPlugin.options.logRocketId %>'); }</script>
+    <% } %>
   </head>
   <body>
     <div id="cards">

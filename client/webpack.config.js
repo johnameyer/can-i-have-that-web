@@ -14,6 +14,7 @@ module.exports = {
   plugins: [new HtmlWebpackPlugin({
     title: 'Can I Have That Online',
     baseUrl: process.env.BASE_URL || '/',
-    template: './client/index.html'
+    template: './client/index.html',
+    logRocketId: process.env.LOG_ROCKET_ID
   })]
 };

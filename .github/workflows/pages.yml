@@ -34,6 +34,7 @@ jobs:
         run: npm run build-client
         env:
           BASE_URL: https://johnmeyer.dev/can-i-have-that-web/
+          LOG_ROCKET_ID: lzhhi6/can-i-have-that-web-github
 
       - name: Commit Files
         run: |
