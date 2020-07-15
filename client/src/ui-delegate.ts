@@ -6,6 +6,8 @@ import { HandlerCustomData } from 'can-i-have-that/dist/cards/handlers/handler-d
 
 type Handler<T> = (response: T) => void;
 
+declare const MULTIPLAYER_AUTO_CONNECT: boolean;
+
 export namespace UIDelegate {
     //TODO move up into main library
     export function message(message: Message) {
@@ -249,33 +251,38 @@ export namespace UIDelegate {
         getFormsRegion().append(form);
     }
 
-    export function setupLobby(singleplayer: (name: string) => void, multiplayer: (name: string) => void) {
+    export function setupLobby(singleplayer: (name: string) => void, multiplayer: (name: string, host?: string) => void) {
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
         form.append('Your name: ');
         const name = input('Name');
         form.append(name);
-        const singleplayerButton = button('Singleplayer', () => {
+
+        form.append(create('br'));
+
+        const singleplayerButton = button('Play Against Bots', () => {
             singleplayer(name.value);
             form.remove();
         });
         form.append(singleplayerButton);
-        const multiplayerButton = button('Multiplayer', () => {
-            multiplayer(name.value);
+
+        form.append(create('br'));
+
+        form.append('Server: ');
+
+        const server = input('Server');
+        form.append(server);
+
+        form.append(create('br'));
+
+        const serverConnect = button('Connect to Server', () => {
+            multiplayer(name.value, server.value || undefined);
             form.remove();
         });
-        multiplayerButton.disabled = true;
-        multiplayerButton.id = 'multiplayer';
-        form.append(multiplayerButton);
+        serverConnect.id = 'multiplayer';
+        form.append(serverConnect);
         getFormsRegion().append(form);
     }
-
-    export function enableMultiplayer() {
-        const multiplayerButton = document.getElementById('multiplayer') as HTMLButtonElement;
-        if(multiplayerButton) {
-            multiplayerButton.disabled = false;
-        }
-    };
 
     export function listMultiplayerOptions(roomOptions: [string, number][], open: () => void, join: (room: string) => void, begin: () => void) {
         const form = create('form');

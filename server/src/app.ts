@@ -28,6 +28,7 @@ app.get(base, (req: any, res: any) => {
 
 app.use(base, express.static(path.join(__dirname, '/../../client/dist/')));
 
+console.log('Base at', base);
 console.log('Listening on port', port);
 
 let free = 1;

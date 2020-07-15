@@ -2,8 +2,9 @@
 import { Card, Run, runFromObj } from 'can-i-have-that';
 import { EventType } from './shared/event-types';
 import { UIDelegate } from './ui-delegate';
-import { appendMessage } from './dom-helpers';
+import { appendMessage, getEventsRegion } from './dom-helpers';
 import { OrderingData } from './shared/ordering-data';
+import io from 'socket.io-client';
 
 const mapToIndex = <T extends {equals: (other: any) => boolean}>(items: T[], selectedItem: T) => {
     return items.findIndex(card => selectedItem.equals(card));
@@ -21,8 +22,33 @@ const mapToIndices = <T extends {equals: (other: any) => boolean}>(items: T[], s
     return indices;
 }
 
-export function multiplayer(socket: SocketIOClient.Socket) {
-    return (name: string) => {
+export function multiplayer(name: string, host?: string) {
+    // @ts-ignore
+    const socket = io.connect(host);
+
+    (window as any).socket = socket;
+    
+    // socket.on('connect', (obj: any) => console.error('connect', obj));
+    // socket.on('connect_timeout', (obj: any) => console.error('connect_timeout', obj));
+    // socket.on('connecting', (obj: any) => console.error('connecting', obj));
+    // socket.on('reconnect_error', (obj: any) => console.error('reconnect_error', obj));
+
+    socket.once('connect', () => {
+        getEventsRegion().innerHTML = '';
+        appendMessage('Connected to server');
+
+        socket.on('error', (obj: any) => {
+            // console.error('error', obj);
+            appendMessage('Error');
+        });
+
+        
+        socket.on('connect_error', (obj: any) => {
+            // console.error(obj);
+            appendMessage('Failed to reach the server');
+        });
+        
+        // socket.connected = true; // THIS FIXES BUT IS INFURIATING
         socket.emit('multiplayer', name);
         socket.on('multiplayer/options', (roomOptions: [string, number][]) => {
             const open = () => socket.emit('multiplayer/open');
@@ -115,5 +141,5 @@ export function multiplayer(socket: SocketIOClient.Socket) {
             const handler = (response: Card[]) => socket.emit('cardsToPlay', mapToIndices(cards, response), data);
             UIDelegate.cardsToPlay(cards, run, data, handler);
         } );
-    };
+    });
 };

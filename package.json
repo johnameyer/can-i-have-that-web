@@ -5,13 +5,12 @@
   "main": "server/build/app.js",
   "scripts": {
     "clean": "rm -rf client/build client/dist server/build",
-    "tsc": "tsc --build client server",
+    "tsc": "tsc --build server",
     "webpack": "webpack --config client/webpack.config.js",
-    "copy-client-statics": "cp -r client/static/* client/dist/",
-    "build-client": "tsc --build client && npm run webpack -- --mode production  && npm run copy-client-statics",
-    "build-dev": "tsc --build client && npm run webpack -- --mode development && npm run copy-client-statics",
+    "build-client": "npm run webpack -- --mode production",
+    "build-dev": "npm run webpack -- --mode development",
     "dev": "npm run build-dev && ts-node-dev --expose-gc --inspect --respawn --transpileOnly ./server/src/app.ts",
-    "build-prod": "npm run tsc && npm run webpack -- --mode production && npm run copy-client-statics",
+    "build-prod": "npm run webpack -- --mode production && npm run tsc",
     "prod": "npm run build-prod && node ./server/build/app.js"
   },
   "repository": {
@@ -28,17 +27,19 @@
     "@types/express": "^4.17.7",
     "@types/socket.io": "^2.1.8",
     "@types/socket.io-client": "^1.4.33",
-    "can-i-have-that": "0.0.4",
+    "can-i-have-that": "0.0.7",
     "drag-drop-regions": "^1.0.4",
     "express": "^4.17.1",
     "socket.io": "^2.3.0",
     "socket.io-client": "^2.3.0",
-    "typescript": "^3.9.6",
     "webpack": "^4.43.0"
   },
   "devDependencies": {
+    "copy-webpack-plugin": "^6.0.3",
     "html-webpack-plugin": "^4.3.0",
+    "ts-loader": "^8.0.0",
     "ts-node-dev": "^1.0.0-pre.50",
+    "typescript": "^3.9.6",
     "webpack-cli": "^3.3.12"
   },
   "sideEffects": false
