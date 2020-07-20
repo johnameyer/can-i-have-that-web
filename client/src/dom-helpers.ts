@@ -8,6 +8,14 @@ export const getEventsRegion = () => {
     return element;
 }
 
+export const getEventAnchor = () => {
+    const element = document.getElementById('anchor');
+    if(!element) {
+        throw new Error('Cannot find element #anchor');
+    }
+    return element;
+}
+
 export const getFormsRegion = () => {
     const element = document.getElementById('form');
     if(!element) {
@@ -108,10 +116,6 @@ export const cardDisplay = (cards: Card[]) => {
 
 export const appendMessage = (message: string) => {
     const eventsRegion = getEventsRegion();
-    const shouldScroll = eventsRegion.scrollHeight - eventsRegion.scrollTop - eventsRegion.clientHeight < 10;
     const element = p(message);
-    eventsRegion.append(element);
-    if(shouldScroll) {
-        element.scrollIntoView();
-    }
+    eventsRegion.insertBefore(element, getEventAnchor());
 };

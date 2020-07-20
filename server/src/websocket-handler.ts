@@ -1,7 +1,8 @@
-import { ClientHandler, Card, Run, Message, HandlerData, FourCardRun, ThreeCardSet } from "can-i-have-that";
+import { ClientHandler, Card, Run, Message, HandlerData, FourCardRun, ThreeCardSet, PickupMessage } from "can-i-have-that";
 import { Socket } from "socket.io";
 import { EventType } from './shared/event-types';
 import { HandlerCustomData } from "can-i-have-that/dist/cards/handlers/handler-data";
+import { OrderingData } from "./shared/ordering-data";
 
 export class WebsocketHandler extends ClientHandler {
     private name: string;
@@ -16,6 +17,7 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, ...otherArgs, data);
         return await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
+            data.wantCard = Card.fromObj(newData.wantCard);
             resolver(result);
         }));
     }
@@ -24,6 +26,7 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, choices, ...otherArgs, data);
         return choices[await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
+            data.wantCard = Card.fromObj(newData.wantCard);
             resolver(result);
         })) as number];
     }
@@ -32,6 +35,7 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, choices, ...otherArgs, data);
         return ((await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
+            data.wantCard = Card.fromObj(newData.wantCard);
             resolver(result);
         }))) as number[]).map(num => choices[num]);
     }
@@ -71,6 +75,12 @@ export class WebsocketHandler extends ClientHandler {
     
     public async wantCard(card: Card, isTurn: boolean, {hand, played, position, round, gameParams: {rounds}, data}: HandlerData): Promise<[boolean, HandlerCustomData]> {
         this.reconcileDataAndHand(hand, data);
+        if(card.equals(data.discardedCard)) {
+            data.discardedCard = undefined;
+            return [data.wantBack, data];
+        } else {
+            data.discardedCard = undefined;
+        }
         return [await this.booleanQuestion(EventType.WANT_CARD, data, card, hand), data];
     }
 

@@ -1,4 +1,4 @@
-import { ClientHandler, Card, Run, HandlerData, Message, ThreeCardSet, FourCardRun, DealMessage } from "can-i-have-that";
+import { ClientHandler, Card, Run, HandlerData, Message, ThreeCardSet, FourCardRun, DealMessage, PickupMessage } from "can-i-have-that";
 import { UIDelegate } from "./ui-delegate";
 import { OrderingData } from "./shared/ordering-data";
 import { HandlerCustomData } from "can-i-have-that/dist/cards/handlers/handler-data";
@@ -30,6 +30,12 @@ export class WebHandler extends ClientHandler {
 
     async wantCard(card: Card, isTurn: boolean, { hand, played, position, round, gameParams: { rounds }, data }: HandlerData): Promise<[boolean, HandlerCustomData]> {
         this.reconcileDataAndHand(hand, data);
+        if(card.equals(data.discardedCard)) {
+            data.discardedCard = undefined;
+            return [data.wantBack, data];
+        } else {
+            data.discardedCard = undefined;
+        }
         return new Promise<[boolean, HandlerCustomData]>((resolve) => UIDelegate.wantCard(card, hand, data as OrderingData, resolve));
     }
     
@@ -90,7 +96,7 @@ export class WebHandler extends ClientHandler {
     }
 
     getName(): string {
-        return this.name;
+        return this.name || 'Website Player';
     }
 
     message(message: Message): void {

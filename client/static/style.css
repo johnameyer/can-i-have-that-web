@@ -52,25 +52,42 @@ p {
 }
 
 #cards {
-    margin: 10px;
-    height: calc(100vh - 20px);
-    width: calc(100vw - 20px);
+    padding: 20px;
+    min-height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
 }
 
 #events {
-    overflow-y: scroll;
-    flex-basis: 1;
+    overflow-y: auto;
+    flex-basis: 0;
     flex-grow: 1;
     max-height: 50vh;
+    min-height: 20vh;
+    margin-bottom: 20px;
+}
+
+#events * {
+    overflow-anchor: none;
+}
+
+#anchor {
+    overflow-anchor: auto;
+    height: 1px;
 }
 
 #form {
-    flex-basis: 1;
+    flex-basis: auto;
+    border-top: 1px black solid;
+    padding-top: 10px;
 }
 
 body {
     margin: 0px;
     padding: 0px;
+}
+
+h1 {
+    margin: 0px;
+    margin-bottom: 20px;
 }

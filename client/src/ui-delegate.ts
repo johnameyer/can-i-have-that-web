@@ -1,12 +1,10 @@
-import { Card, ThreeCardSet, FourCardRun, Run, Message, DealMessage } from 'can-i-have-that';
+import { Card, ThreeCardSet, FourCardRun, Run, Message } from 'can-i-have-that';
 import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input } from './dom-helpers';
 import { dragSegments } from 'drag-drop-regions';
 import { OrderingData } from './shared/ordering-data';
 import { HandlerCustomData } from 'can-i-have-that/dist/cards/handlers/handler-data';
 
 type Handler<T> = (response: T) => void;
-
-declare const MULTIPLAYER_AUTO_CONNECT: boolean;
 
 export namespace UIDelegate {
     //TODO move up into main library
@@ -33,6 +31,7 @@ export namespace UIDelegate {
         container.append(button('Yes', handleResponse(true)));
         container.append(button('No', handleResponse(false)));
         getFormsRegion().append(container);
+        container.scrollIntoView();
     }
 
     export function wantToGoDown(hand: Card[], data: OrderingData, handler: Handler<boolean>) {
@@ -50,6 +49,7 @@ export namespace UIDelegate {
         container.append(button('Yes', handleResponse(true)));
         container.append(button('No', handleResponse(false)));
         getFormsRegion().append(container);
+        container.scrollIntoView();
     }
 
     export function moveToTop(handler: Handler<boolean>) {
@@ -62,13 +62,14 @@ export namespace UIDelegate {
         container.append(button('Yes', handleResponse(true)));
         container.append(button('No', handleResponse(false)));
         getFormsRegion().append(container);
+        container.scrollIntoView();
     }
 
     export function selectCards(hand: Card[], num: 3 | 4, data: OrderingData, handler: Handler<Card[]>) {
         hand = data.hand || hand;
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please drag cards in the '  + (num === 3 ? '3 of a kind ' : '4 card run ') + 'into the area or drag none to escape going down'));
+        form.append(p('Please drag cards in the '  + (num === 3 ? '3 of a kind ' : '4 card run from lowest to highest ') + 'into the area or drag none to escape going down'));
         const validate = (input: Card[]) => {
             if (input.length === 0) {
                 return true;
@@ -98,7 +99,8 @@ export namespace UIDelegate {
         }
         const options = dragSegments(cardContainer, [hand, []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
         form.append(options);
-        getFormsRegion().append(form);        
+        getFormsRegion().append(form);
+        form.scrollIntoView();
     }
 
     export function discardChoice(hand: Card[], live: Card[], data: OrderingData, handler: Handler<Card>) {
@@ -108,14 +110,15 @@ export namespace UIDelegate {
         form.append(p('Please drag or move a card to the area below to discard'));
         const validate = (choice: Card) => !live.some((card) => choice.equals(card));
         const error = p('');
-        const handleResponse = (selected: Card[][]) => {
-            const toDiscard = selected[1][0];
+        const handleResponse = (toDiscard: Card, wantBack: boolean) => {
             if(!toDiscard) {
                 error.innerText = 'Must discard a card';
                 return;
             }
             if(validate(toDiscard)) {
                 data.hand = hand;
+                data.discardedCard = toDiscard;
+                data.wantBack = wantBack;
                 handler(toDiscard);
                 form.remove();
                 appendMessage('You discarded ' + toDiscard.toString());
@@ -125,9 +128,17 @@ export namespace UIDelegate {
             }
         }
 
-        const options = dragSegments(cardContainer,[hand, []], cardDragItem, handleResponse, [-1, 1], [() => true, ([card]) => card ? validate(card) : false]);
+        const toDiscard: Card[] = [];
+        const options = dragSegments(cardContainer,[hand, toDiscard], cardDragItem, undefined, [-1, 1], [() => true, ([card]) => card ? validate(card) : false]);
         form.append(options);
+        form.append('Want card back (if possible): ');
+        const wantBack = create('input');
+        wantBack.type = 'checkbox';
+        form.append(wantBack);
+        const submit = button('Submit', () => handleResponse(toDiscard[0], wantBack.checked));
+        form.append(submit);
         getFormsRegion().append(form);
+        form.scrollIntoView();
     }
 
     export function insertWild(run: Card[], data: OrderingData, handler: Handler<number>) {
@@ -167,6 +178,7 @@ export namespace UIDelegate {
         const submit = button('Submit', handleResponse);
         form.append(submit);
         getFormsRegion().append(form);
+        form.scrollIntoView();
     }
 
     export function wantToPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<boolean>) {
@@ -188,6 +200,7 @@ export namespace UIDelegate {
         container.append(button('Yes', handleResponse(true)));
         container.append(button('No', handleResponse(false)));
         getFormsRegion().append(container);
+        container.scrollIntoView();
     }
 
     export function whichPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<Run>) {
@@ -195,7 +208,7 @@ export namespace UIDelegate {
         const container = create('div');
         container.append(p('You have'));
         container.append(cardDisplay(hand));
-        container.append(p('Select the run you would like to play on first'));
+        container.append(p('Click the run you would like to play on first'));
         const handleResponse = (index: number) => () => {
             data.hand = hand;
             handler(runs[index]);
@@ -208,6 +221,7 @@ export namespace UIDelegate {
             container.append(runDisplay);
         }
         getFormsRegion().append(container);
+        container.scrollIntoView();
     }
 
     export function cardsToPlay(hand: Card[], run: Run, data: OrderingData, handler: Handler<Card[]>) {
@@ -249,6 +263,7 @@ export namespace UIDelegate {
         const options = dragSegments(cardContainer, [hand, []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
         form.append(options);
         getFormsRegion().append(form);
+        form.scrollIntoView();
     }
 
     export function setupLobby(singleplayer: (name: string) => void, multiplayer: (name: string, host?: string) => void) {
@@ -259,6 +274,7 @@ export namespace UIDelegate {
         form.append(name);
 
         form.append(create('br'));
+        form.append(create('br'));
 
         const singleplayerButton = button('Play Against Bots', () => {
             singleplayer(name.value);
@@ -267,15 +283,19 @@ export namespace UIDelegate {
         form.append(singleplayerButton);
 
         form.append(create('br'));
+        form.append(create('br'));
+
+        form.append('or');
+        
+        form.append(create('br'));
+        form.append(create('br'));
 
         form.append('Server: ');
 
         const server = input('Server');
         form.append(server);
 
-        form.append(create('br'));
-
-        const serverConnect = button('Connect to Server', () => {
+        const serverConnect = button('Play Online', () => {
             multiplayer(name.value, server.value || undefined);
             form.remove();
         });
@@ -318,7 +338,7 @@ export namespace UIDelegate {
     }
 }
 
-function validateSetSelection(num: number, input: Card[]) {
+function validateSetSelection(num: 3 | 4, input: Card[]) {
     if (num === 3) {
         new ThreeCardSet(input);
     } else {
