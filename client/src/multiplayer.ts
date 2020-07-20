@@ -84,11 +84,6 @@ export function multiplayer(name: string, host?: string) {
             UIDelegate.wantToGoDown(hand, data, handler);
         });
 
-        socket.on(EventType.MOVE_TO_TOP, function() {
-            const handler = (response: boolean) => socket.emit(EventType.MOVE_TO_TOP, response);
-            UIDelegate.moveToTop(handler);
-        });
-
         socket.on(EventType.SELECT_CARDS, function(cards: Card[], num: 3 | 4, data: OrderingData) {
             cards = cards.map(Card.fromObj);
             data.hand = data.hand.map(Card.fromObj);
@@ -104,14 +99,6 @@ export function multiplayer(name: string, host?: string) {
             
             const handler = (response: Card) => socket.emit(EventType.DISCARD_CHOICE, cards.findIndex(card => card.equals(response)), data);
             UIDelegate.discardChoice(cards, live, data, handler);
-        });
-
-        socket.on(EventType.INSERT_WILD, function(run: Card[], data: OrderingData) {
-            run = run.map(Card.fromObj);
-            data.hand = data.hand.map(Card.fromObj);
-
-            const handler = (response: number) => socket.emit(EventType.INSERT_WILD, response, data);
-            UIDelegate.insertWild(run, data, handler);
         });
 
         socket.on(EventType.WOULD_PLAY, function(played: Run[], cards: Card[], data: OrderingData) {
@@ -132,13 +119,13 @@ export function multiplayer(name: string, host?: string) {
             UIDelegate.whichPlay(runs, cards, data, handler);
         } );
         
-        socket.on(EventType.CARDS_TO_PLAY, function(cards: Card[], run: Run, data: OrderingData) {
+        socket.on(EventType.PLAY_ON_RUN, function(cards: Card[], run: Run, data: OrderingData) {
             cards = cards.map(Card.fromObj);
             run = runFromObj(run);
             data.hand = data.hand.map(Card.fromObj);
             
             const handler = (response: Card[]) => socket.emit('cardsToPlay', mapToIndices(cards, response), data);
-            UIDelegate.cardsToPlay(cards, run, data, handler);
+            UIDelegate.playCards(cards, run, data, handler);
         } );
     });
 };

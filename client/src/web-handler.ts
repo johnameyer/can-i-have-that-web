@@ -60,6 +60,18 @@ export class WebHandler extends ClientHandler {
         }
     }
 
+    async askToPlayOnRun(run: Run, hand: Card[], data: OrderingData) {
+        return new Promise<void>((resolve) => UIDelegate.playCards(hand, run, data, (cards) => {
+                run.cards = cards;
+                if(run instanceof ThreeCardSet) {
+                    run.wilds = cards.filter(card => card.isWild());
+                }
+                cards.filter(card => !run.cards.find(originalCard => card.equals(originalCard))).forEach((toRemove) => hand.splice(hand.findIndex((card) => toRemove.equals(card)), 1));
+                resolve();
+            })
+        );
+    }
+
     showHand(hand: Card[], roun: (3 | 4)[], played: Run[]): void {
     }
 
@@ -68,11 +80,11 @@ export class WebHandler extends ClientHandler {
     }
 
     async cardsToPlay(hand: Card[], run: Run, data: OrderingData): Promise<Card[]> {
-        return new Promise((resolve) => UIDelegate.cardsToPlay(hand, run, data, resolve));
+        throw new Error('Unused method.');
     }
 
     async moveToTop(): Promise<boolean> {
-        return new Promise((resolve) => UIDelegate.moveToTop(resolve));
+        throw new Error('Unused method.');
     }
 
     async wantToPlay(played: Run[], hand: Card[], data: OrderingData): Promise<boolean> {

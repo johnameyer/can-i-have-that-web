@@ -52,19 +52,6 @@ export namespace UIDelegate {
         container.scrollIntoView();
     }
 
-    export function moveToTop(handler: Handler<boolean>) {
-        const container = create('div');
-        container.append(p('Do you want to move the wild to the top?'));
-        const handleResponse = (response: boolean) => () => {
-            handler(response);
-            container.remove();
-        }
-        container.append(button('Yes', handleResponse(true)));
-        container.append(button('No', handleResponse(false)));
-        getFormsRegion().append(container);
-        container.scrollIntoView();
-    }
-
     export function selectCards(hand: Card[], num: 3 | 4, data: OrderingData, handler: Handler<Card[]>) {
         hand = data.hand || hand;
         const form = create('form');
@@ -141,46 +128,6 @@ export namespace UIDelegate {
         form.scrollIntoView();
     }
 
-    export function insertWild(run: Card[], data: OrderingData, handler: Handler<number>) {
-        const form = create('form');
-        form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please choose where to insert your wild cards'));
-        const options = create('select');
-        const before = create('option');
-        before.innerText = 'Before ' + run[0].toString();
-        before.value = '0';
-        options.append(before);
-        for(let i = 1; i < run.length; i++) {
-            const option = create('option');
-            option.innerText = 'Between ' + run[i - 1].toString() + ' and ' + run[i].toString();
-            option.value = String(i);
-            options.append(option);
-        }
-        const after = create('option');
-        after.innerText = 'After ' + run[run.length - 1].toString();
-        after.value = String(run.length);
-        options.append(after);
-        options.append(after);
-        form.append(options);
-        const validate = () => true; //TODO
-        const error = p('');
-        const handleResponse = () => {
-            const insert = Number(options.value);
-            const result = validate();
-            if(result == true) {
-                handler(insert);
-                form.remove();
-            } else {
-                error.innerText = '';
-                form.append(error);
-            }
-        }
-        const submit = button('Submit', handleResponse);
-        form.append(submit);
-        getFormsRegion().append(form);
-        form.scrollIntoView();
-    }
-
     export function wantToPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<boolean>) {
         hand = data.hand || hand;
         const container = create('div');
@@ -224,21 +171,18 @@ export namespace UIDelegate {
         container.scrollIntoView();
     }
 
-    export function cardsToPlay(hand: Card[], run: Run, data: OrderingData, handler: Handler<Card[]>) {
+    export function playCards(hand: Card[], run: Run, data: OrderingData, handler: Handler<Card[]>) {
         hand = data.hand || hand;
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please drag the cards to add to'));
-        form.append(cardDisplay(run.cards));
+        form.append(p('Please drag the cards you want to add to the run'));
         const validate = (input: Card[]) => {
             if (input.length === 0) {
                 return true;
             }
             try {
-                const runClone = run.clone();
-                for(let card of input) {
-                    runClone.add(card);
-                }
+                validateSetSelection(run.type as 3 | 4, input);
+                validateSetRange(run, input);
                 return true;
             } catch (e) {
                 return e;
@@ -260,7 +204,10 @@ export namespace UIDelegate {
                 form.append(error);
             }
         }
-        const options = dragSegments(cardContainer, [hand, []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
+        const options = dragSegments(cardContainer, [hand, run.cards.slice()], cardDragItem, handleResponse, [-1, -1],
+            [() => true, (cards) => cards.length ? validate(cards) === true : true],
+            [hand.map(() => false), run.cards.map(card => run.type === 3 || !card.isWild())]
+        );
         form.append(options);
         getFormsRegion().append(form);
         form.scrollIntoView();
@@ -340,8 +287,42 @@ export namespace UIDelegate {
 
 function validateSetSelection(num: 3 | 4, input: Card[]) {
     if (num === 3) {
-        new ThreeCardSet(input);
+        new ThreeCardSet(input.slice());
     } else {
-        new FourCardRun(input);
+        new FourCardRun(input.slice());
+    }
+}
+
+function validateSetRange(run: Run, input: Card[]) {
+    if (run.type === 3) {
+        const removed = run.cards.filter(card => !input.find(otherCard => card.equals(otherCard)));
+        if(removed.length) {
+            throw new Error('Cannot remove cards ' + removed.map(card => card.toString()) + ' from set');
+        }
+        for(let i = 0; i < run.cards.length; i++) {
+            if(!run.cards[i].equals(input[i])) {
+                throw new Error('Cannot move original cards');
+            }
+        }
+    } else {
+        const startingIndex = input.findIndex(card => card.equals(run.cards[0]));
+        const removed = run.cards.filter(card => !input.find(otherCard => card.equals(otherCard)));
+        if(removed.length) {
+            throw new Error('Cannot remove cards ' + removed.map(card => card.toString()) + ' from set');
+        }
+        for(let i = 0; i < run.cards.length; i++) {
+            if(run.cards[i].isWild()) {
+                if(!input[i + startingIndex].isWild()) {
+                    continue;
+                }
+                if(!run.cards[i].equals(input[i + startingIndex])) {
+                    throw new Error('Cannot move a wild unless it is being replaced with a nonwild');
+                }
+            }
+            if(!run.cards[i].equals(input[i + startingIndex])) {
+                // shouldn't theoretically happen with the preservation check and validity check but safe
+                throw new Error('Cannot replace a card that was in the set originally');
+            }
+        }
     }
 }

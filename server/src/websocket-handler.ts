@@ -97,19 +97,28 @@ export class WebsocketHandler extends ClientHandler {
         }
     }
 
+    async askToPlayOnRun(run: Run, hand: Card[], data: OrderingData) {
+        const cards = (await this.choicesQuestion(EventType.PLAY_ON_RUN, data, hand, run)).map(card => Card.fromObj(card));
+        run.cards = cards;
+        if(run instanceof ThreeCardSet) {
+            run.wilds = cards.filter(card => card.isWild());
+        }
+        cards.filter(card => !run.cards.find(originalCard => card.equals(originalCard))).forEach((toRemove) => hand.splice(hand.findIndex((card) => toRemove.equals(card)), 1));
+    }
+
     showHand(hand: Card[], roun: (3 | 4)[], played: Run[]): void {
     }
 
     async selectCards(cardsLeft: Card[], num: number, data: HandlerCustomData): Promise<Card[]> {
-        return await this.choicesQuestion(EventType.SELECT_CARDS, data, cardsLeft, num)
+        return await this.choicesQuestion(EventType.SELECT_CARDS, data, cardsLeft, num);
     }
 
     async cardsToPlay(hand: Card[], run: Run, data: HandlerCustomData): Promise<Card[]> {
-        return await this.choicesQuestion(EventType.CARDS_TO_PLAY, data, hand, run);
+        throw new Error('Unused method.');
     }
 
     async moveToTop(): Promise<boolean> {
-        return await this.booleanQuestion(EventType.MOVE_TO_TOP, {});
+        throw new Error('Unused method.');
     }
 
     async wantToPlay(runOptions: Run[], hand: Card[], data: HandlerCustomData): Promise<boolean> {
