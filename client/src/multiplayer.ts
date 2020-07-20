@@ -34,7 +34,6 @@ export function multiplayer(name: string, host?: string) {
     // socket.on('reconnect_error', (obj: any) => console.error('reconnect_error', obj));
 
     socket.once('connect', () => {
-        getEventsRegion().innerHTML = '';
         appendMessage('Connected to server');
 
         socket.on('error', (obj: any) => {
@@ -68,13 +67,13 @@ export function multiplayer(name: string, host?: string) {
             appendMessage('You were kicked from the game');
         });
 
-        socket.on(EventType.WANT_CARD, function(card: Card, hand: Card[], data: OrderingData) {
+        socket.on(EventType.WANT_CARD, function(card: Card, hand: Card[], isTurn: boolean, data: OrderingData) {
             card = Card.fromObj(card);
             hand = hand.map(Card.fromObj);
             data.hand = data.hand.map(Card.fromObj);
 
             const handler = (response: [boolean, any]) => socket.emit(EventType.WANT_CARD, response[0], data);
-            UIDelegate.wantCard(card, hand, data, handler);
+            UIDelegate.wantCard(card, hand, isTurn, data, handler);
         });
 
         socket.on(EventType.GO_DOWN, function(hand: Card[], data: OrderingData) {

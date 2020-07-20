@@ -13,7 +13,7 @@ export namespace UIDelegate {
         appendMessage(message.message);
     }
 
-    export function wantCard(card: Card, hand: Card[], data: OrderingData, handler: Handler<[boolean, HandlerCustomData]>) {
+    export function wantCard(card: Card, hand: Card[], isTurn: boolean, data: OrderingData, handler: Handler<[boolean, HandlerCustomData]>) {
         hand = data.hand || hand;
         const container = create('div');
         container.append(p('You have'));
@@ -21,7 +21,7 @@ export namespace UIDelegate {
         container.append(dragSegment);
         const cardImage = cardItem(card);
         cardImage.style.verticalAlign = 'middle';
-        container.append(p('Do you want ', cardImage, '?'));
+        container.append(p('Do you want ', cardImage, isTurn ? '?' : ' and an extra?'));
         const handleResponse = (response: boolean) => () => {
             data.hand = hand;
             handler([response, data]);

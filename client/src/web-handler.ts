@@ -36,7 +36,7 @@ export class WebHandler extends ClientHandler {
         } else {
             data.discardedCard = undefined;
         }
-        return new Promise<[boolean, HandlerCustomData]>((resolve) => UIDelegate.wantCard(card, hand, data as OrderingData, resolve));
+        return new Promise<[boolean, HandlerCustomData]>((resolve) => UIDelegate.wantCard(card, hand, isTurn, data as OrderingData, resolve));
     }
     
     async turn(gameState: HandlerData): Promise<{ toDiscard: Card | null, toPlay: Run[][], data?: HandlerCustomData } | null> {

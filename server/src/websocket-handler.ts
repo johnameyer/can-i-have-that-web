@@ -17,7 +17,8 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, ...otherArgs, data);
         return await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
-            data.wantCard = Card.fromObj(newData.wantCard);
+            data.discardedCard = Card.fromObj(newData.discardedCard);
+            data.wantBack = newData.wantBack;
             resolver(result);
         }));
     }
@@ -81,7 +82,7 @@ export class WebsocketHandler extends ClientHandler {
         } else {
             data.discardedCard = undefined;
         }
-        return [await this.booleanQuestion(EventType.WANT_CARD, data, card, hand), data];
+        return [await this.booleanQuestion(EventType.WANT_CARD, data, card, hand, isTurn), data];
     }
 
     async createRun(num: 3 | 4, cardsLeft: Card[], data: HandlerCustomData) {
