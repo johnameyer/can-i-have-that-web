@@ -70,9 +70,12 @@ io.on('connection', (socket: Socket) => {
         handler.setSocket(socket);
 
         delete lobby[key];
-
-        const driver = new GameDriver(room.map(([name, socket]) => { const handler = new WebsocketHandler(name); handler.setSocket(socket); return handler; } ), defaultParams);
-        driver.start();
+        try {
+          const driver = new GameDriver(room.map(([name, socket]) => { const handler = new WebsocketHandler(name); handler.setSocket(socket); return handler; } ), defaultParams);
+          driver.start();
+        } catch (e) {
+          console.error(e);
+        }
       });
 
       socket.once('disconnect', () => {
