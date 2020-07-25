@@ -1,0 +1,94 @@
+.container {
+    display: grid;
+    gap: 10px;
+    grid-template-columns: repeat(auto-fill, minmax(calc(3/4 * min(25vw, 100px)), 1fr) ) ;
+    min-height: min(25vw, 100px);
+    border: solid black 1px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    align-items: center;
+    justify-items: center;
+    margin-bottom: 10px;
+}
+
+p {
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+.container.invalid {
+    border-color: #f11;
+}
+
+.card {
+    height: min(25vw, 100px);
+}
+
+.drag-card:hover {
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .25rem #14f);
+}
+
+.drag-card:focus-within {
+    outline: none;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .5rem #14f);
+}
+
+.drag-card.fixed:focus-within, .drag-card.fixed:hover {
+    outline: none;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .5rem #777);
+}
+
+.drag-card.selected:focus-within {
+    outline: none;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 0 .5rem #e70);
+}
+
+#cards {
+    padding: 20px;
+    min-height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
+}
+
+#events {
+    overflow-y: auto;
+    flex-basis: 0;
+    flex-grow: 1;
+    max-height: 50vh;
+    min-height: 20vh;
+    margin-bottom: 20px;
+}
+
+#events * {
+    overflow-anchor: none;
+}
+
+#anchor {
+    overflow-anchor: auto;
+    height: 1px;
+}
+
+#form {
+    flex-basis: auto;
+    border-top: 1px black solid;
+    padding-top: 10px;
+}
+
+body {
+    margin: 0px;
+    padding: 0px;
+}
+
+h1 {
+    margin: 0px;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
