@@ -3,6 +3,7 @@ import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer,
 import { dragSegments } from 'drag-drop-regions';
 import { OrderingData } from './shared/ordering-data';
 import { HandlerCustomData } from 'can-i-have-that/dist/cards/handlers/handler-data';
+import { hasSave, singleplayerFromSave } from './singleplayer';
 
 type Handler<T> = (response: T) => void;
 
@@ -231,6 +232,17 @@ export namespace UIDelegate {
             form.remove();
         });
         form.append(singleplayerButton);
+
+        if(hasSave()) {
+            form.append(create('br'));
+            form.append(create('br'));
+
+            const singleplayerFromSaveButton = button('Resume Bot Game', () => {
+                singleplayerFromSave(name.value);
+                form.remove();
+            });
+            form.append(singleplayerFromSaveButton);
+        }
 
         form.append(create('br'));
         form.append(create('br'));
