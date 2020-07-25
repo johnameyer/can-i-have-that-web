@@ -17,7 +17,7 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, ...otherArgs, data);
         return await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
-            data.discardedCard = Card.fromObj(newData.discardedCard);
+            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
             data.wantBack = newData.wantBack;
             resolver(result);
         }));
@@ -27,7 +27,8 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, choices, ...otherArgs, data);
         return choices[await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
-            data.wantCard = Card.fromObj(newData.wantCard);
+            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+            data.wantBack = newData.wantBack;
             resolver(result);
         })) as number];
     }
@@ -36,9 +37,20 @@ export class WebsocketHandler extends ClientHandler {
         this.socket.emit(channel, choices, ...otherArgs, data);
         return ((await new Promise(resolver => this.socket.once(channel, (result, newData) => {
             data.hand = newData.hand.map(Card.fromObj);
-            data.wantCard = Card.fromObj(newData.wantCard);
+            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+            data.wantBack = newData.wantBack;
             resolver(result);
         }))) as number[]).map(num => choices[num]);
+    }
+
+    private readonly itemsQuestion = async <T>(channel: EventType, data: HandlerCustomData, choices: T[], ...otherArgs: any[]): Promise<T[]> => {
+        this.socket.emit(channel, choices, ...otherArgs, data);
+        return ((await new Promise(resolver => this.socket.once(channel, (result, newData) => {
+            data.hand = newData.hand.map(Card.fromObj);
+            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+            data.wantBack = newData.wantBack;
+            resolver(result);
+        }))));
     }
 
     reconcileDataAndHand(hand: Card[], data: HandlerCustomData) {
@@ -98,12 +110,12 @@ export class WebsocketHandler extends ClientHandler {
     }
 
     async askToPlayOnRun(run: Run, hand: Card[], data: OrderingData) {
-        const cards = (await this.choicesQuestion(EventType.PLAY_ON_RUN, data, hand, run)).map(card => Card.fromObj(card));
+        const cards = (await this.itemsQuestion(EventType.PLAY_ON_RUN, data, [...hand, ...run.cards], run)).map(card => Card.fromObj(card));
+        cards.filter(card => !run.cards.find(originalCard => card.equals(originalCard))).forEach((toRemove) => hand.splice(hand.findIndex((card) => toRemove.equals(card)), 1));
         run.cards = cards;
         if(run instanceof ThreeCardSet) {
             run.wilds = cards.filter(card => card.isWild());
         }
-        cards.filter(card => !run.cards.find(originalCard => card.equals(originalCard))).forEach((toRemove) => hand.splice(hand.findIndex((card) => toRemove.equals(card)), 1));
     }
 
     showHand(hand: Card[], roun: (3 | 4)[], played: Run[]): void {
@@ -126,7 +138,7 @@ export class WebsocketHandler extends ClientHandler {
     }
 
     async whichPlay(runOptions: Run[], hand: Card[], data: HandlerCustomData): Promise<Run> {
-        return await this.choiceQuestion(EventType.WHICH_PLAY, data, runOptions, hand)
+        return await this.choiceQuestion(EventType.WHICH_PLAY, data, runOptions, hand) || null;
     }
 
     async wantToGoDown(hand: Card[], data: HandlerCustomData): Promise<boolean> {

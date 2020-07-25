@@ -150,7 +150,7 @@ export namespace UIDelegate {
         container.scrollIntoView();
     }
 
-    export function whichPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<Run>) {
+    export function whichPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<Run | null>) {
         hand = data.hand || hand;
         const container = create('div');
         container.append(p('You have'));
@@ -158,9 +158,12 @@ export namespace UIDelegate {
         container.append(p('Click the run you would like to play on first'));
         const handleResponse = (index: number) => () => {
             data.hand = hand;
-            handler(runs[index]);
+            handler(runs[index] || null);
             container.remove();
         }
+        const none = button('Can\'t Play', handleResponse(-1));
+        container.append(none);
+        container.append(create('br'));
         for(let i = 0; i < runs.length; i++) {
             const run = runs[i];
             const runDisplay = cardDisplay(run.cards);

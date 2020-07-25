@@ -1,4 +1,4 @@
-import { GameDriver, LocalMaximumHandler, Handler, defaultParams } from "can-i-have-that";
+import { GameDriver, LocalMaximumHandler, defaultParams } from "can-i-have-that";
 import { WebHandler } from "./web-handler";
 
 export async function singleplayer(name: string) {

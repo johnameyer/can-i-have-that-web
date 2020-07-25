@@ -62,11 +62,11 @@ export class WebHandler extends ClientHandler {
 
     async askToPlayOnRun(run: Run, hand: Card[], data: OrderingData) {
         return new Promise<void>((resolve) => UIDelegate.playCards(hand, run, data, (cards) => {
+                cards.filter(card => !run.cards.find(originalCard => card.equals(originalCard))).forEach((toRemove) => hand.splice(hand.findIndex((card) => toRemove.equals(card)), 1));
                 run.cards = cards;
                 if(run instanceof ThreeCardSet) {
                     run.wilds = cards.filter(card => card.isWild());
                 }
-                cards.filter(card => !run.cards.find(originalCard => card.equals(originalCard))).forEach((toRemove) => hand.splice(hand.findIndex((card) => toRemove.equals(card)), 1));
                 resolve();
             })
         );
@@ -91,7 +91,7 @@ export class WebHandler extends ClientHandler {
         return new Promise((resolve) => UIDelegate.wantToPlay(played, hand, data, resolve));
     }
 
-    async whichPlay(runOptions: Run[], hand: Card[], data: OrderingData): Promise<Run> {
+    async whichPlay(runOptions: Run[], hand: Card[], data: OrderingData): Promise<Run | null> {
         return new Promise((resolve) => UIDelegate.whichPlay(runOptions, hand, data, resolve));
     }
 
