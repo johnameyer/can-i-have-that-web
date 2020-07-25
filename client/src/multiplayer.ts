@@ -134,6 +134,10 @@ export function multiplayer(name: string, host?: string) {
                 const handler = (response: Card[]) => socket.emit(EventType.PLAY_ON_RUN, response, data);
                 UIDelegate.playCards(cards, run, data, handler);
             } );
+
+            socket.on(EventType.WAITING_FOR, function(who: string | undefined) {
+                UIDelegate.waitingFor(who);
+            } );
         })(socket);
     });
 };

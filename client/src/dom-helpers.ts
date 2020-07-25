@@ -16,6 +16,14 @@ export const getEventAnchor = () => {
     return element;
 }
 
+export const getWaitingRegion = () => {
+    const element = document.getElementById('waiting');
+    if(!element) {
+        throw new Error('Cannot find element #waiting');
+    }
+    return element;
+}
+
 export const getFormsRegion = () => {
     const element = document.getElementById('form');
     if(!element) {

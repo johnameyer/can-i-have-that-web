@@ -114,5 +114,9 @@ export class WebHandler extends ClientHandler {
     message(message: Message): void {
         UIDelegate.message(message);
     }
+
+    waitingFor(who: string | undefined): void {
+        UIDelegate.waitingFor(who);
+    }
     
 }

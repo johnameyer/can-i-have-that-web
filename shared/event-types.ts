@@ -7,4 +7,5 @@ export enum EventType {
     GO_DOWN = 'goDown',
     DISCARD_CHOICE = 'discardChoice',
     MESSAGE = 'message',
+    WAITING_FOR = "waitingFor"
 }

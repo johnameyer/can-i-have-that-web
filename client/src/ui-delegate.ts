@@ -1,5 +1,5 @@
 import { Card, ThreeCardSet, FourCardRun, Run, Message } from 'can-i-have-that';
-import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input } from './dom-helpers';
+import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input, getWaitingRegion } from './dom-helpers';
 import { dragSegments } from 'drag-drop-regions';
 import { OrderingData } from './shared/ordering-data';
 import { HandlerCustomData } from 'can-i-have-that/dist/cards/handlers/handler-data';
@@ -12,6 +12,14 @@ export namespace UIDelegate {
     export function message(message: Message) {
         console.log(message);
         appendMessage(message.message);
+    }
+
+    export function waitingFor(who: string | undefined) {
+        if(who) {
+            getWaitingRegion().appendChild(p('Waiting for ' + who + ' to decide'));
+        } else {
+            getWaitingRegion().innerHTML = '';
+        }
     }
 
     export function wantCard(card: Card, hand: Card[], isTurn: boolean, data: OrderingData, handler: Handler<[boolean, HandlerCustomData]>) {

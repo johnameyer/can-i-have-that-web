@@ -162,4 +162,8 @@ export class WebsocketHandler extends ClientHandler {
     message(message: Message): void {
         this.socket.emit(EventType.MESSAGE, JSON.stringify(message));
     }
+
+    waitingFor(who: string | undefined): void {
+        this.socket.emit(EventType.WAITING_FOR, who);
+    }
 }
