@@ -22,9 +22,13 @@ const mapToIndices = <T extends {equals: (other: any) => boolean}>(items: T[], s
     return indices;
 }
 
-export function multiplayer(name: string, host?: string) {
+export function multiplayer(username: string, name: string, host?: string) {
     // @ts-ignore
-    const socket = io.connect(host);
+    const socket = io.connect(host, {
+        query: {
+            username
+        }
+    });
 
     (window as any).socket = socket;
     
@@ -36,18 +40,17 @@ export function multiplayer(name: string, host?: string) {
     socket.once('connect', () => {
         appendMessage('Connected to server');
 
-        socket.on('error', (obj: any) => {
+        socket.on('error', () => {
             // console.error('error', obj);
             appendMessage('Error');
         });
 
         
-        socket.on('connect_error', (obj: any) => {
+        socket.on('connect_error', () => {
             // console.error(obj);
             appendMessage('Failed to reach the server');
         });
         
-        // socket.connected = true; // THIS FIXES BUT IS INFURIATING
         socket.emit('multiplayer', name);
         socket.on('multiplayer/options', (roomOptions: [string, number][]) => {
             const open = () => socket.emit('multiplayer/open');
@@ -67,12 +70,7 @@ export function multiplayer(name: string, host?: string) {
             appendMessage('You were kicked from the game');
         });
 
-        type Protocol = {
-            on: (channel: EventType, handler: (..._: any[]) => void) => void,
-            emit: (channel: EventType, ..._: any[]) => void,
-        }
-
-        (function(socket: Protocol) {
+        (function(socket: SocketIOClient.Socket) {
 
             socket.on(EventType.WANT_CARD, function(card: Card, hand: Card[], isTurn: boolean, data: OrderingData) {
                 card = Card.fromObj(card);

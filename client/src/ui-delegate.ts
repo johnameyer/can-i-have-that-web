@@ -225,7 +225,7 @@ export namespace UIDelegate {
         form.scrollIntoView();
     }
 
-    export function setupLobby(singleplayer: (name: string) => void, multiplayer: (name: string, host?: string) => void) {
+    export function setupLobby(singleplayer: (name: string) => void, multiplayer: (username: string, name: string, host?: string) => void) {
         const form = create('form');
         form.onsubmit = (e) => e.preventDefault();
         form.append('Your name: ');
@@ -260,13 +260,19 @@ export namespace UIDelegate {
         form.append(create('br'));
         form.append(create('br'));
 
+
+        form.append('Username: ');
+        const username = input('Username');
+        form.append(username);
+        form.append(create('br'));
+
         form.append('Server: ');
 
         const server = input('Server');
         form.append(server);
 
         const serverConnect = button('Play Online', () => {
-            multiplayer(name.value, server.value || undefined);
+            multiplayer(username.value, name.value, server.value || undefined);
             form.remove();
         });
         serverConnect.id = 'multiplayer';

@@ -1,12 +1,12 @@
 import { ClientHandler, Card, Run, Message, HandlerData, FourCardRun, ThreeCardSet, PickupMessage } from "can-i-have-that";
-import { Socket } from "socket.io";
 import { EventType } from './shared/event-types';
 import { HandlerCustomData } from "can-i-have-that/dist/cards/handlers/handler-data";
 import { OrderingData } from "./shared/ordering-data";
+import { Protocol } from "./shared/protocol";
 
-export class WebsocketHandler extends ClientHandler {
+export class WebsocketHandler<T extends Protocol<EventType>> extends ClientHandler {
     private name: string;
-    private socket!: Socket;
+    private protocol!: T;
 
     constructor(name: string) {
         super();
@@ -14,43 +14,35 @@ export class WebsocketHandler extends ClientHandler {
     }
 
     private readonly booleanQuestion = async (channel: EventType, data: HandlerCustomData, ...otherArgs: any[]): Promise<boolean> => {
-        this.socket.emit(channel, ...otherArgs, data);
-        return await new Promise(resolver => this.socket.once(channel, (result, newData) => {
-            data.hand = newData.hand.map(Card.fromObj);
-            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
-            data.wantBack = newData.wantBack;
-            resolver(result);
-        }));
+        const [result, newData] = await this.protocol.sendAndReceive(channel, ...otherArgs, data) as [boolean, HandlerCustomData];;
+        data.hand = newData.hand.map(Card.fromObj);
+        data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+        data.wantBack = newData.wantBack;
+        return result;
     }
 
     private readonly choiceQuestion = async <T>(channel: EventType, data: HandlerCustomData, choices: T[], ...otherArgs: any[]): Promise<T> => {
-        this.socket.emit(channel, choices, ...otherArgs, data);
-        return choices[await new Promise(resolver => this.socket.once(channel, (result, newData) => {
-            data.hand = newData.hand.map(Card.fromObj);
-            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
-            data.wantBack = newData.wantBack;
-            resolver(result);
-        })) as number];
+        const [result, newData] = await this.protocol.sendAndReceive(channel, choices, ...otherArgs, data) as [number, HandlerCustomData];
+        data.hand = newData.hand.map(Card.fromObj);
+        data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+        data.wantBack = newData.wantBack;
+        return choices[result];
     }
 
     private readonly choicesQuestion = async <T>(channel: EventType, data: HandlerCustomData, choices: T[], ...otherArgs: any[]): Promise<T[]> => {
-        this.socket.emit(channel, choices, ...otherArgs, data);
-        return ((await new Promise(resolver => this.socket.once(channel, (result, newData) => {
-            data.hand = newData.hand.map(Card.fromObj);
-            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
-            data.wantBack = newData.wantBack;
-            resolver(result);
-        }))) as number[]).map(num => choices[num]);
+        const [results, newData] = await this.protocol.sendAndReceive(channel, choices, ...otherArgs, data) as [number[], HandlerCustomData];
+        data.hand = newData.hand.map(Card.fromObj);
+        data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+        data.wantBack = newData.wantBack;
+        return results.map(num => choices[num]);
     }
 
     private readonly itemsQuestion = async <T>(channel: EventType, data: HandlerCustomData, choices: T[], ...otherArgs: any[]): Promise<T[]> => {
-        this.socket.emit(channel, choices, ...otherArgs, data);
-        return ((await new Promise(resolver => this.socket.once(channel, (result, newData) => {
-            data.hand = newData.hand.map(Card.fromObj);
-            data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
-            data.wantBack = newData.wantBack;
-            resolver(result);
-        }))));
+        const [results, newData] = await this.protocol.sendAndReceive(channel, choices, ...otherArgs, data) as [T[], HandlerCustomData];
+        data.hand = newData.hand.map(Card.fromObj);
+        data.discardedCard = newData.discardedCard ? Card.fromObj(newData.discardedCard) : newData.discardedCard;
+        data.wantBack = newData.wantBack;
+        return results;
     }
 
     reconcileDataAndHand(hand: Card[], data: HandlerCustomData) {
@@ -82,8 +74,8 @@ export class WebsocketHandler extends ClientHandler {
         return {...result, data: gameState.data};
     }
     
-    setSocket(socket: Socket) {
-        this.socket = socket;
+    setProtocol(protocol: T) {
+        this.protocol = protocol;
     }
     
     public async wantCard(card: Card, isTurn: boolean, {hand, played, position, round, gameParams: {rounds}, data}: HandlerData): Promise<[boolean, HandlerCustomData]> {
@@ -160,10 +152,10 @@ export class WebsocketHandler extends ClientHandler {
     }
     
     message(message: Message): void {
-        this.socket.emit(EventType.MESSAGE, JSON.stringify(message));
+        this.protocol.send(EventType.MESSAGE, JSON.stringify(message));
     }
 
     waitingFor(who: string | undefined): void {
-        this.socket.emit(EventType.WAITING_FOR, who);
+        this.protocol.send(EventType.WAITING_FOR, who);
     }
 }

@@ -8,8 +8,8 @@ document.addEventListener("DOMContentLoaded", async function(){
         import("./singleplayer").then(({singleplayer}) => singleplayer(name));
     }
 
-    const multiplayer = (name: string, host?: string) => {
-        import('./multiplayer').then(({multiplayer}) => multiplayer(name, host));
+    const multiplayer = (username: string, name: string, host?: string) => {
+        import('./multiplayer').then(({multiplayer}) => multiplayer(username, name, host));
     }
     UIDelegate.setupLobby(singleplayer, multiplayer);
 });

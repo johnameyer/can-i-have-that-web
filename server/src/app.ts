@@ -1,8 +1,11 @@
 console.log('Server is starting up');
 
 import { WebsocketHandler } from "./websocket-handler";
+import { SessionDecoupler } from "./shared/session-decoupler";
+import { SocketIOProtocol } from './shared/socket-io-protocol';
 import { Socket } from "socket.io";
 import { GameDriver, defaultParams } from "can-i-have-that"
+import { Protocol } from "./shared/protocol";
 
 const path = require('path');
 
@@ -15,15 +18,15 @@ const port = process.argv[2] || 8084;
 const base = process.env.BASE_URL || '/';
 
 if(base !== '/') {
-  app.get('/', (req: any, res: any) => {
-    res.redirect(base);
-  });
+    app.get('/', (req: any, res: any) => {
+        res.redirect(base);
+    });
 }
 
 server.listen(port, '0.0.0.0');
 
 app.get(base, (req: any, res: any) => {
-  res.sendFile(path.resolve(__dirname + '/../../client/dist/index.html'));
+    res.sendFile(path.resolve(__dirname + '/../../client/dist/index.html'));
 });
 
 app.use(base, express.static(path.join(__dirname, '/../../client/dist/')));
@@ -32,75 +35,108 @@ console.log('Base at', base);
 console.log('Listening on port', port);
 
 let free = 1;
-const lobby: {[code: string]: [string, any][]} = {};
+const lobby: {[code: string]: [string, SessionDecoupler][]} = {};
+const socketForUser: {[username: string]: Socket} = {};
+const sessionForUser: {[username: string]: SessionDecoupler} = {};
+
+io.use((socket: Socket, next: (error?: Error) => void) => {
+    let { username } = socket.handshake.query;
+    if (username && !socketForUser[username]) {
+        return next();
+    }
+    return next(new Error('Invalid Username'));
+});
 
 io.on('connection', (socket: Socket) => {
-  console.log('New connection');
+    let { username } = socket.handshake.query;
+    socketForUser[username] = socket;
+    if(sessionForUser[username]) {
+        console.log(username, 'rejoined');
+        sessionForUser[username].setProtocol(new SocketIOProtocol(socket));
+    } else {
+        console.log('New connection for', username);
+    }
 
-  socket.once('multiplayer', async (name: string) => {
-    socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
 
-    let selected: null | string;
-
-    socket.once('multiplayer/join', (key) => {
-      selected = key;
-      if(selected) {
-        lobby[selected].push([name, socket]);
-
-        socket.once('disconnect', () => {
-          if(selected && lobby[selected]) {
-            console.log('Player', name, socket.id, 'disconnected from room', selected);
-            lobby[selected].splice(lobby[selected].findIndex((tuple) => tuple[1] === socket));
-          }
-        });
-      } else {
-        socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
-      }
-    });
+    socket.once('multiplayer', async (name: string) => {
+        if(!sessionForUser[username]) {
+            socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
+        }
     
-    socket.once('multiplayer/open', () => {
-      const room: [string, Socket][] = [];
-      room.push([name, socket]);
-      const key = String(free++);
-      lobby[key] = room;
+        const protocol = new SessionDecoupler();
+        protocol.setProtocol(new SocketIOProtocol(socket));
+        sessionForUser[username] = protocol;
 
-      socket.once('multiplayer/begin', () => {
-        console.log('Starting multiplayer session for room', key);
-        const handler = new WebsocketHandler(name);
-        handler.setSocket(socket);
+        let selected: null | string;
 
-        delete lobby[key];
-        try {
-          const driver = new GameDriver(room.map(([name, socket]) => { const handler = new WebsocketHandler(name); handler.setSocket(socket); return handler; } ), defaultParams);
-          driver.start();
-        } catch (e) {
-          console.error(e);
-        }
-      });
+        socket.once('multiplayer/join', (key) => {
+            selected = key;
+            if(selected) {
+                lobby[selected].push([name, protocol]);
 
-      socket.once('disconnect', () => {
-        console.log('Closing room', key);
-        if(lobby[key]) {
-          delete lobby[key];
-        }
-        let item: [string, Socket] | undefined = undefined;
-        while(item = room.pop()) {
-          console.log('Kicked', item[0], item[1].id, 'from', key)
-          item[1].emit('multiplayer/kicked');
-        }
-      });
+                socket.once('disconnect', () => {
+                    if(selected && lobby[selected]) {
+                        console.log('Player', name, socket.id, 'disconnected from room', selected);
+                        lobby[selected].splice(lobby[selected].findIndex((tuple) => tuple[1] === protocol));
+                    }
+                });
+            } else {
+                socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
+            }
+        });
+        
+        socket.once('multiplayer/open', () => {
+            const room: [string, SessionDecoupler][] = [];
+            room.push([name, protocol]);
+            const key = String(free++);
+            lobby[key] = room;
+
+            socket.once('multiplayer/begin', () => {
+                console.log('Starting multiplayer session for room', key);
+                const handler = new WebsocketHandler(name);
+                handler.setProtocol(protocol);
+
+                delete lobby[key];
+                try {
+                    const driver = new GameDriver(room.map(([name, protocol]) => {
+                        const handler = new WebsocketHandler(name);
+                        handler.setProtocol(protocol);
+                        return handler;
+                    }), defaultParams);
+                    driver.start();
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+
+            socket.once('disconnect', () => {
+                console.log('Closing room', key);
+                if(lobby[key]) {
+                    delete lobby[key];
+                }
+                let item: [string, Protocol] | undefined = undefined;
+                while(item = room.pop()) {
+                    console.log('Kicked', item[0], item[1], 'from', key)
+                    item[1].send('multiplayer/kicked');
+                }
+            });
+        });
     });
-  });
 
 
-  socket.emit('ready', true);
-  // io.emit('this', { will: 'be received by everyone'});
+    socket.emit('ready', true);
+    // io.emit('this', { will: 'be received by everyone'});
 
-  // socket.on('private message', (from: any, msg: any) => {
-  //   console.log('I received a private message by ', from, ' saying ', msg);
-  // });
+    // socket.on('private message', (from: any, msg: any) => {
+    //   console.log('I received a private message by ', from, ' saying ', msg);
+    // });
 
-  socket.on('disconnect', () => {
-    console.log('Disconnected user ' + socket.id);
-  });
+    socket.on('disconnect', () => {
+        console.log('Disconnected user ' + username);
+        
+        if(sessionForUser[username]) {
+            sessionForUser[username].clearProtocol();
+        }
+        delete socketForUser[username];
+    });
 });
