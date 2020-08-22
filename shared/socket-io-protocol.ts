@@ -1,5 +1,4 @@
 import { Protocol } from './protocol';
-import { EventType } from './event-types';
 import { Socket } from 'socket.io';
 
 export class SocketIOProtocol<T extends string = string> implements Protocol<T> {

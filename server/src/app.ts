@@ -52,75 +52,75 @@ io.on('connection', (socket: Socket) => {
     socketForUser[username] = socket;
     if(sessionForUser[username]) {
         console.log(username, 'rejoined');
-        sessionForUser[username].setProtocol(new SocketIOProtocol(socket));
     } else {
         console.log('New connection for', username);
     }
 
-
     socket.once('multiplayer', async (name: string) => {
-        if(!sessionForUser[username]) {
+        if(sessionForUser[username]) {
+            sessionForUser[username].setProtocol(new SocketIOProtocol(socket));
+        } else {
             socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
-        }
-    
-        const protocol = new SessionDecoupler();
-        protocol.setProtocol(new SocketIOProtocol(socket));
-        sessionForUser[username] = protocol;
+            
+            const protocol = new SessionDecoupler();
+            protocol.setProtocol(new SocketIOProtocol(socket));
+            sessionForUser[username] = protocol;
 
-        let selected: null | string;
+            let selected: null | string;
 
-        socket.once('multiplayer/join', (key) => {
-            selected = key;
-            if(selected) {
-                lobby[selected].push([name, protocol]);
+            socket.once('multiplayer/join', (key) => {
+                selected = key;
+                if(selected) {
+                    lobby[selected].push([name, protocol]);
 
-                socket.once('disconnect', () => {
-                    if(selected && lobby[selected]) {
-                        console.log('Player', name, socket.id, 'disconnected from room', selected);
-                        lobby[selected].splice(lobby[selected].findIndex((tuple) => tuple[1] === protocol));
+                    socket.once('disconnect', () => {
+                        if(selected && lobby[selected]) {
+                            console.log('Player', name, socket.id, 'disconnected from room', selected);
+                            lobby[selected].splice(lobby[selected].findIndex((tuple) => tuple[1] === protocol));
+                        }
+                    });
+                } else {
+                    socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
+                }
+            });
+        
+            socket.once('multiplayer/open', () => {
+                const room: [string, SessionDecoupler][] = [];
+                room.push([name, protocol]);
+                const key = String(free++);
+                lobby[key] = room;
+
+                socket.once('multiplayer/begin', () => {
+                    console.log('Starting multiplayer session for room', key);
+                    const handler = new WebsocketHandler(name);
+                    handler.setProtocol(protocol);
+
+                    delete lobby[key];
+                    try {
+                        const driver = new GameDriver(room.map(([name, protocol]) => {
+                            const handler = new WebsocketHandler(name);
+                            handler.setProtocol(protocol);
+                            return handler;
+                        }), defaultParams);
+                        driver.start();
+                    } catch (e) {
+                        console.error(e);
                     }
                 });
-            } else {
-                socket.emit('multiplayer/options', Object.entries(lobby).map(([key, members]) => [key, members.length]));
-            }
-        });
-        
-        socket.once('multiplayer/open', () => {
-            const room: [string, SessionDecoupler][] = [];
-            room.push([name, protocol]);
-            const key = String(free++);
-            lobby[key] = room;
 
-            socket.once('multiplayer/begin', () => {
-                console.log('Starting multiplayer session for room', key);
-                const handler = new WebsocketHandler(name);
-                handler.setProtocol(protocol);
-
-                delete lobby[key];
-                try {
-                    const driver = new GameDriver(room.map(([name, protocol]) => {
-                        const handler = new WebsocketHandler(name);
-                        handler.setProtocol(protocol);
-                        return handler;
-                    }), defaultParams);
-                    driver.start();
-                } catch (e) {
-                    console.error(e);
-                }
+                socket.once('disconnect', () => {
+                    console.log('Closing room', key);
+                    if(lobby[key]) {
+                        delete lobby[key];
+                    }
+                    let item: [string, Protocol] | undefined = undefined;
+                    while(item = room.pop()) {
+                        console.log('Kicked', item[0], item[1], 'from', key)
+                        item[1].send('multiplayer/kicked');
+                    }
+                });
             });
-
-            socket.once('disconnect', () => {
-                console.log('Closing room', key);
-                if(lobby[key]) {
-                    delete lobby[key];
-                }
-                let item: [string, Protocol] | undefined = undefined;
-                while(item = room.pop()) {
-                    console.log('Kicked', item[0], item[1], 'from', key)
-                    item[1].send('multiplayer/kicked');
-                }
-            });
-        });
+        }
     });
 
 
