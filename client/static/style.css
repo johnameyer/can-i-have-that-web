@@ -71,6 +71,22 @@ p {
     overflow-anchor: none;
 }
 
+#events > div {
+    display: flex;
+    align-items: center;
+}
+
+#events > div > * {
+    padding-right: 5px;
+}
+
+#events .card {
+    padding-top: 10px;
+    height: min(15vw, 75px);
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
 #anchor {
     overflow-anchor: auto;
     height: 1px;

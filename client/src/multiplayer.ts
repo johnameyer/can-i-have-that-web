@@ -1,26 +1,10 @@
 
-import { Card, Run, runFromObj } from 'can-i-have-that';
-import { EventType } from './shared/event-types';
-import { UIDelegate } from './ui-delegate';
-import { appendMessage, getEventsRegion } from './dom-helpers';
-import { OrderingData } from './shared/ordering-data';
+import { appendMessage } from './dom-helpers';
 import io from 'socket.io-client';
-
-const mapToIndex = <T extends {equals: (other: any) => boolean}>(items: T[], selectedItem: T) => {
-    return items.findIndex(card => selectedItem.equals(card));
-}
-
-const mapToIndices = <T extends {equals: (other: any) => boolean}>(items: T[], selectedItems: T[]) => {
-    const indices = [];
-    for(let i = 0; i < selectedItems.length; i++) {
-        let j = items.findIndex(card => selectedItems[i].equals(card));
-        while(indices.indexOf(j) >= 0) {
-            j = items.slice(j).findIndex(card => selectedItems[i].equals(card)) + j;
-        }
-        indices.push(j);
-    }
-    return indices;
-}
+import { SocketListener } from './socket-listener';
+import { WebIntermediary } from './web-intermediary';
+import { WebPresenter } from './web-presenter';
+import { UIDelegate } from './ui-delegate';
 
 export function multiplayer(username: string, name: string, host?: string) {
     // @ts-ignore
@@ -61,81 +45,10 @@ export function multiplayer(username: string, name: string, host?: string) {
             UIDelegate.listMultiplayerOptions(roomOptions, open, join, begin);
         });
 
-        socket.on(EventType.MESSAGE, function (data: string) {
-            const message = JSON.parse(data);
-            UIDelegate.message(message);
-        });
-
         socket.on('multiplayer/kicked', function () {
             appendMessage('You were kicked from the game');
         });
 
-        (function(socket: SocketIOClient.Socket) {
-
-            socket.on(EventType.WANT_CARD, function(card: Card, hand: Card[], isTurn: boolean, data: OrderingData) {
-                card = Card.fromObj(card);
-                hand = hand.map(Card.fromObj);
-                data.hand = data.hand.map(Card.fromObj);
-
-                const handler = (response: [boolean, any]) => socket.emit(EventType.WANT_CARD, response[0], data);
-                UIDelegate.wantCard(card, hand, isTurn, data, handler);
-            });
-
-            socket.on(EventType.GO_DOWN, function(hand: Card[], data: OrderingData) {
-                hand = hand.map(Card.fromObj);
-                data.hand = data.hand.map(Card.fromObj);
-
-                const handler = (response: boolean) => socket.emit(EventType.GO_DOWN, response, data);
-                UIDelegate.wantToGoDown(hand, data, handler);
-            });
-
-            socket.on(EventType.SELECT_CARDS, function(cards: Card[], num: 3 | 4, data: OrderingData) {
-                cards = cards.map(Card.fromObj);
-                data.hand = data.hand.map(Card.fromObj);
-                
-                const handler = (response: Card[]) => socket.emit(EventType.SELECT_CARDS, mapToIndices(cards, response), data);
-                UIDelegate.selectCards(cards, num, data, handler);
-            });
-
-            socket.on(EventType.DISCARD_CHOICE, function(cards: Card[], live: Card[], data: OrderingData) {
-                cards = cards.map(Card.fromObj);
-                live = live.map(Card.fromObj);
-                data.hand = data.hand.map(Card.fromObj);
-                
-                const handler = (response: Card) => socket.emit(EventType.DISCARD_CHOICE, cards.findIndex(card => card.equals(response)), data);
-                UIDelegate.discardChoice(cards, live, data, handler);
-            });
-
-            socket.on(EventType.WOULD_PLAY, function(played: Run[], cards: Card[], data: OrderingData) {
-                cards = cards.map(Card.fromObj);
-                played = played.map(runFromObj);
-                data.hand = data.hand.map(Card.fromObj);
-                
-                const handler = (response: boolean) => socket.emit(EventType.WOULD_PLAY, response, data);
-                UIDelegate.wantToPlay(played, cards, data, handler);
-            });
-
-            socket.on(EventType.WHICH_PLAY, function(runs: Run[], cards: Card[], data: OrderingData) {
-                runs = runs.map(runFromObj);
-                cards = cards.map(Card.fromObj);
-                data.hand = data.hand.map(Card.fromObj);
-                
-                const handler = (response: Run | null) => socket.emit(EventType.WHICH_PLAY, response ? mapToIndex(runs, response) : null, data);
-                UIDelegate.whichPlay(runs, cards, data, handler);
-            } );
-            
-            socket.on(EventType.PLAY_ON_RUN, function(cards: Card[], run: Run, data: OrderingData) {
-                cards = cards.map(Card.fromObj);
-                run = runFromObj(run);
-                data.hand = data.hand.map(Card.fromObj);
-                
-                const handler = (response: Card[]) => socket.emit(EventType.PLAY_ON_RUN, response, data);
-                UIDelegate.playCards(cards, run, data, handler);
-            } );
-
-            socket.on(EventType.WAITING_FOR, function(who: string | undefined) {
-                UIDelegate.waitingFor(who);
-            } );
-        })(socket);
+        new SocketListener(socket, new WebIntermediary(new WebPresenter()));
     });
 };

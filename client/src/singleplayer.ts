@@ -1,5 +1,6 @@
-import { GameDriver, LocalMaximumHandler, defaultParams, GameState } from "can-i-have-that";
-import { WebHandler } from "./web-handler";
+import { GameDriver, LocalMaximumHandler, defaultParams, GameState, IntermediaryHandler } from "can-i-have-that";
+import { WebIntermediary } from "./web-intermediary";
+import { WebPresenter } from "./web-presenter";
 
 const keyname = 'state';
 
@@ -11,7 +12,8 @@ class CommitingGameDriver extends GameDriver {
 }
 
 export async function singleplayer(name: string) {
-    let handler = new WebHandler(name);
+    let handler = new IntermediaryHandler(new WebIntermediary(new WebPresenter()));
+    handler.setName(name);
     
     const driver = new CommitingGameDriver([handler, new LocalMaximumHandler(), new LocalMaximumHandler()], defaultParams);
     await driver.start();
@@ -22,7 +24,8 @@ export function hasSave() {
 }
 
 export async function singleplayerFromSave(name: string) {
-    let handler = new WebHandler(name);
+    let handler = new IntermediaryHandler(new WebIntermediary(new WebPresenter()));
+    handler.setName(name);
     
     const savedJSON = localStorage.getItem(keyname);
     if(!savedJSON) {

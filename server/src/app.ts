@@ -1,10 +1,9 @@
 console.log('Server is starting up');
 
-import { WebsocketHandler } from "./websocket-handler";
 import { SessionDecoupler } from "./shared/session-decoupler";
 import { SocketIOProtocol } from './shared/socket-io-protocol';
 import { Socket } from "socket.io";
-import { GameDriver, defaultParams } from "can-i-have-that"
+import { GameDriver, defaultParams, Intermediary, IntermediaryHandler, ProtocolIntermediary } from "can-i-have-that"
 import { Protocol } from "./shared/protocol";
 
 const path = require('path');
@@ -92,14 +91,12 @@ io.on('connection', (socket: Socket) => {
 
                 socket.once('multiplayer/begin', () => {
                     console.log('Starting multiplayer session for room', key);
-                    const handler = new WebsocketHandler(name);
-                    handler.setProtocol(protocol);
 
                     delete lobby[key];
                     try {
                         const driver = new GameDriver(room.map(([name, protocol]) => {
-                            const handler = new WebsocketHandler(name);
-                            handler.setProtocol(protocol);
+                            const handler = new IntermediaryHandler(new ProtocolIntermediary(protocol as any));
+                            handler.setName(name);
                             return handler;
                         }), defaultParams);
                         driver.start();

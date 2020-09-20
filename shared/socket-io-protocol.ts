@@ -17,7 +17,6 @@ export class SocketIOProtocol<T extends string = string> implements Protocol<T> 
         });
     }
 
-
     async sendAndReceive(channel: T, ...data: any[]) {
         return await new Promise<any[]>((resolve, reject) => {
             if(!this.socket.connected) {

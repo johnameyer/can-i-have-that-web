@@ -124,6 +124,7 @@ export const cardDisplay = (cards: Card[]) => {
 
 export const appendMessage = (message: string) => {
     const eventsRegion = getEventsRegion();
-    const element = p(message);
+    const element = div();
+    element.insertAdjacentHTML('beforeend', message);
     eventsRegion.insertBefore(element, getEventAnchor());
 };

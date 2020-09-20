@@ -2,7 +2,6 @@ import { Card, ThreeCardSet, FourCardRun, Run, Message } from 'can-i-have-that';
 import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input, getWaitingRegion } from './dom-helpers';
 import { dragSegments } from 'drag-drop-regions';
 import { OrderingData } from './shared/ordering-data';
-import { HandlerCustomData } from 'can-i-have-that/dist/cards/handlers/handler-data';
 import { hasSave, singleplayerFromSave } from './singleplayer';
 
 type Handler<T> = (response: T) => void;
@@ -10,8 +9,7 @@ type Handler<T> = (response: T) => void;
 export namespace UIDelegate {
     //TODO move up into main library
     export function message(message: Message) {
-        console.log(message);
-        appendMessage(message.message);
+        appendMessage(Message.defaultTransformer(message.components));
     }
 
     export function waitingFor(who: string | undefined) {
@@ -22,7 +20,7 @@ export namespace UIDelegate {
         }
     }
 
-    export function wantCard(card: Card, hand: Card[], isTurn: boolean, data: OrderingData, handler: Handler<[boolean, HandlerCustomData]>) {
+    export function wantCard(card: Card, hand: Card[], isTurn: boolean, data: OrderingData, handler: Handler<[boolean, unknown]>) {
         hand = data.hand || hand;
         const container = create('div');
         container.append(p('You have'));
@@ -193,7 +191,7 @@ export namespace UIDelegate {
                 return true;
             }
             try {
-                validateSetSelection(run.type as 3 | 4, input);
+                validateSetSelection(run.runType as 3 | 4, input);
                 validateSetRange(run, input);
                 return true;
             } catch (e) {
@@ -218,7 +216,7 @@ export namespace UIDelegate {
         }
         const options = dragSegments(cardContainer, [hand, run.cards.slice()], cardDragItem, handleResponse, [-1, -1],
             [() => true, (cards) => cards.length ? validate(cards) === true : true],
-            [hand.map(() => false), run.cards.map(card => run.type === 3 || !card.isWild())]
+            [hand.map(() => false), run.cards.map(card => run.runType === 3 || !card.isWild())]
         );
         form.append(options);
         getFormsRegion().append(form);
@@ -323,7 +321,7 @@ function validateSetSelection(num: 3 | 4, input: Card[]) {
 }
 
 function validateSetRange(run: Run, input: Card[]) {
-    if (run.type === 3) {
+    if (run.runType === 3) {
         const removed = run.cards.filter(card => !input.find(otherCard => card.equals(otherCard)));
         if(removed.length) {
             throw new Error('Cannot remove cards ' + removed.map(card => card.toString()) + ' from set');
