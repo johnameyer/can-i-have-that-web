@@ -1,5 +1,4 @@
-import { Intermediary, Message } from 'can-i-have-that';
-import { Serializable } from 'can-i-have-that/dist/intermediary/presenter';
+import { Intermediary, Serializable } from "@cards-ts/core";
 
 export class SocketListener {
     constructor(private readonly socket: SocketIOClient.Socket, private readonly intermediary: Intermediary) {

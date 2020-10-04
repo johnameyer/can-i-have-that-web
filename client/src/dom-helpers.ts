@@ -1,4 +1,4 @@
-import { Card, Rank } from "can-i-have-that";
+import { Card, Rank } from "@cards-ts/core";
 
 export const getEventsRegion = () => {
     const element = document.getElementById('events');

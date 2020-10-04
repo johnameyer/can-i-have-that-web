@@ -1,7 +1,7 @@
-import { Card, Intermediary, Message, Presenter, Serializable } from "can-i-have-that";
 import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input, getWaitingRegion, div } from './dom-helpers';
 import { dragSegments } from "drag-drop-regions";
-import { DisplayElementCallReturn } from "can-i-have-that/dist/intermediary/display-element";
+import { Card, Message, Presenter, Serializable } from '@cards-ts/core';
+import { DisplayElementCallReturn } from '@cards-ts/core/lib/intermediary/display-element';
 
 const isDefined = function<T>(t: T | undefined): t is T {
     return t !== undefined;

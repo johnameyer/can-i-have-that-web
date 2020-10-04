@@ -1,8 +1,7 @@
-import { Card, ThreeCardSet, FourCardRun, Run, Message } from 'can-i-have-that';
 import { appendMessage, create, p, cardDisplay, cardItem, button, cardContainer, cardDragItem, getFormsRegion, input, getWaitingRegion } from './dom-helpers';
 import { dragSegments } from 'drag-drop-regions';
-import { OrderingData } from './shared/ordering-data';
 import { hasSave, singleplayerFromSave } from './singleplayer';
+import { Message, Card, ThreeCardSet, Meld, FourCardRun } from '@cards-ts/core';
 
 type Handler<T> = (response: T) => void;
 
@@ -18,209 +17,6 @@ export namespace UIDelegate {
         } else {
             getWaitingRegion().innerHTML = '';
         }
-    }
-
-    export function wantCard(card: Card, hand: Card[], isTurn: boolean, data: OrderingData, handler: Handler<[boolean, unknown]>) {
-        hand = data.hand || hand;
-        const container = create('div');
-        container.append(p('You have'));
-        const dragSegment = dragSegments(cardContainer, [hand], cardDragItem);
-        container.append(dragSegment);
-        const cardImage = cardItem(card);
-        cardImage.style.verticalAlign = 'middle';
-        container.append(p('Do you want ', cardImage, isTurn ? '?' : ' and an extra?'));
-        const handleResponse = (response: boolean) => () => {
-            data.hand = hand;
-            handler([response, data]);
-            container.remove();
-            appendMessage('You ' + (response ? 'picked ' : 'did not pick ') + 'up the ' + card.toString());
-        }
-        container.append(button('Yes', handleResponse(true)));
-        container.append(button('No', handleResponse(false)));
-        getFormsRegion().append(container);
-        container.scrollIntoView();
-    }
-
-    export function wantToGoDown(hand: Card[], data: OrderingData, handler: Handler<boolean>) {
-        hand = data.hand || hand;
-        const container = create('div');
-        container.append(p('You have'));
-        const dragSegment = dragSegments(cardContainer, [hand], cardDragItem);
-        container.append(dragSegment);
-        const handleResponse = (response: boolean) => () => {
-            data.hand = hand;
-            handler(response);
-            container.remove();
-        }
-        container.append(p('Do you want to go down?'));
-        container.append(button('Yes', handleResponse(true)));
-        container.append(button('No', handleResponse(false)));
-        getFormsRegion().append(container);
-        container.scrollIntoView();
-    }
-
-    export function selectCards(hand: Card[], num: 3 | 4, data: OrderingData, handler: Handler<Card[]>) {
-        hand = data.hand || hand;
-        const form = create('form');
-        form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please drag cards in the '  + (num === 3 ? '3 of a kind ' : '4 card run from lowest to highest ') + 'into the area or drag none to escape going down'));
-        const validate = (input: Card[]) => {
-            if (input.length === 0) {
-                return true;
-            }
-            try {
-                validateSetSelection(num, input);
-                return true;
-            } catch (e) {
-                return e as Error;
-            }
-        };
-        const error = p('');
-        const handleResponse = (selection: Card[][]) => {
-            const toPlayCards = selection[1].slice();
-            const result = validate(toPlayCards);
-            if(result === true) {
-                form.remove();
-                data.hand = hand;
-                handler(toPlayCards);
-                if(toPlayCards.length) {
-                    appendMessage('You played ' + toPlayCards.toString());
-                }
-            } else {
-                error.innerText = result.message;
-                form.append(error);
-            }
-        }
-        const options = dragSegments(cardContainer, [hand, []], cardDragItem, handleResponse, [-1, -1], [() => true, (cards) => cards.length ? validate(cards) === true : true]);
-        form.append(options);
-        getFormsRegion().append(form);
-        form.scrollIntoView();
-    }
-
-    export function discardChoice(hand: Card[], live: Card[], data: OrderingData, handler: Handler<Card>) {
-        hand = data.hand || hand;
-        const form = create('form');
-        form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please drag or move a card to the area below to discard'));
-        const validate = (choice: Card) => !live.some((card) => choice.equals(card));
-        const error = p('');
-        const handleResponse = (toDiscard: Card, wantBack: boolean) => {
-            if(!toDiscard) {
-                error.innerText = 'Must discard a card';
-                return;
-            }
-            if(validate(toDiscard)) {
-                data.hand = hand;
-                data.discardedCard = toDiscard;
-                data.wantBack = wantBack;
-                handler(toDiscard);
-                form.remove();
-                appendMessage('You discarded ' + toDiscard.toString());
-            } else {
-                error.innerText = toDiscard.toString() + ' is a live card';
-                form.append(error);
-            }
-        }
-
-        const toDiscard: Card[] = [];
-        const options = dragSegments(cardContainer,[hand, toDiscard], cardDragItem, undefined, [-1, 1], [() => true, ([card]) => card ? validate(card) : false]);
-        form.append(options);
-        form.append('Want card back (if possible): ');
-        const wantBack = create('input');
-        wantBack.type = 'checkbox';
-        form.append(wantBack);
-        const submit = button('Submit', () => handleResponse(toDiscard[0], wantBack.checked));
-        form.append(submit);
-        getFormsRegion().append(form);
-        form.scrollIntoView();
-    }
-
-    export function wantToPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<boolean>) {
-        hand = data.hand || hand;
-        const container = create('div');
-        container.append(p('You have'));
-        container.append(cardDisplay(hand));
-        container.append(p('Runs on the table'));
-        for(let run of runs) {
-            const runDisplay = cardDisplay(run.cards);
-            container.append(runDisplay);
-        }
-        const handleResponse = (response: boolean) => () => {
-            data.hand = hand;
-            handler(response);
-            container.remove();
-        }
-        container.append(p('Would you like to play a card on a run?'));
-        container.append(button('Yes', handleResponse(true)));
-        container.append(button('No', handleResponse(false)));
-        getFormsRegion().append(container);
-        container.scrollIntoView();
-    }
-
-    export function whichPlay(runs: Run[], hand: Card[], data: OrderingData, handler: Handler<Run | null>) {
-        hand = data.hand || hand;
-        const container = create('div');
-        container.append(p('You have'));
-        container.append(cardDisplay(hand));
-        container.append(p('Click the run you would like to play on first'));
-        const handleResponse = (index: number) => () => {
-            data.hand = hand;
-            handler(runs[index] || null);
-            container.remove();
-        }
-        const none = button('Can\'t Play', handleResponse(-1));
-        container.append(none);
-        container.append(create('br'));
-        for(let i = 0; i < runs.length; i++) {
-            const run = runs[i];
-            const runDisplay = cardDisplay(run.cards);
-            runDisplay.onclick = handleResponse(i);
-            container.append(runDisplay);
-        }
-        getFormsRegion().append(container);
-        container.scrollIntoView();
-    }
-
-    export function playCards(hand: Card[], run: Run, data: OrderingData, handler: Handler<Card[]>) {
-        hand = data.hand || hand;
-        const form = create('form');
-        form.onsubmit = (e) => e.preventDefault();
-        form.append(p('Please drag the cards you want to add to the run'));
-        const validate = (input: Card[]) => {
-            if (input.length === 0) {
-                return true;
-            }
-            try {
-                validateSetSelection(run.runType as 3 | 4, input);
-                validateSetRange(run, input);
-                return true;
-            } catch (e) {
-                return e;
-            }
-        };
-        const error = p('');
-        const handleResponse = (response: Card[][]) => {
-            const toPlayCards = response[1];
-            const result = validate(toPlayCards);
-            if(result === true) {
-                data.hand = hand;
-                handler(toPlayCards);
-                form.remove();
-                if(toPlayCards.length) {
-                    appendMessage('You played ' + toPlayCards.toString());
-                }
-            } else {
-                error.innerText = result.message;
-                form.append(error);
-            }
-        }
-        const options = dragSegments(cardContainer, [hand, run.cards.slice()], cardDragItem, handleResponse, [-1, -1],
-            [() => true, (cards) => cards.length ? validate(cards) === true : true],
-            [hand.map(() => false), run.cards.map(card => run.runType === 3 || !card.isWild())]
-        );
-        form.append(options);
-        getFormsRegion().append(form);
-        form.scrollIntoView();
     }
 
     export function setupLobby(singleplayer: (name: string) => void, multiplayer: (username: string, name: string, host?: string) => void) {
@@ -244,7 +40,7 @@ export namespace UIDelegate {
             form.append(create('br'));
 
             const singleplayerFromSaveButton = button('Resume Bot Game', () => {
-                singleplayerFromSave(name.value);
+                singleplayerFromSave();
                 form.remove();
             });
             form.append(singleplayerFromSaveButton);
@@ -320,7 +116,7 @@ function validateSetSelection(num: 3 | 4, input: Card[]) {
     }
 }
 
-function validateSetRange(run: Run, input: Card[]) {
+function validateSetRange(run: Meld, input: Card[]) {
     if (run.runType === 3) {
         const removed = run.cards.filter(card => !input.find(otherCard => card.equals(otherCard)));
         if(removed.length) {

@@ -1,4 +1,4 @@
-import { Card } from 'can-i-have-that';
+import { Card } from "@cards-ts/core";
 
 export type OrderingData = {
     hand: Card[];

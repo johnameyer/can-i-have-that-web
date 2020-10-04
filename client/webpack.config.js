@@ -5,6 +5,9 @@ const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
   entry: './client/src/index.ts',
+  node: {
+    inquirer: 'mock'
+  },
   module: {
     rules: [
       {

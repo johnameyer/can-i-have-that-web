@@ -3,8 +3,9 @@ console.log('Server is starting up');
 import { SessionDecoupler } from "./shared/session-decoupler";
 import { SocketIOProtocol } from './shared/socket-io-protocol';
 import { Socket } from "socket.io";
-import { GameDriver, defaultParams, Intermediary, IntermediaryHandler, ProtocolIntermediary } from "can-i-have-that"
+import { defaultParams, GameStateIterator, IntermediaryHandler, StateTransformer, ResponseValidator } from "@cards-ts/can-i-have-that"
 import { Protocol } from "./shared/protocol";
+import { GameDriver, ProtocolIntermediary } from "@cards-ts/core";
 
 const path = require('path');
 
@@ -94,11 +95,16 @@ io.on('connection', (socket: Socket) => {
 
                     delete lobby[key];
                     try {
-                        const driver = new GameDriver(room.map(([name, protocol]) => {
+                        const handlers = room.map(([name, protocol]) => {
                             const handler = new IntermediaryHandler(new ProtocolIntermediary(protocol as any));
-                            handler.setName(name);
+                            // handler.setName(name);
                             return handler;
-                        }), defaultParams);
+                        });
+                        const stateTransformer = new StateTransformer();
+                        const gameState = stateTransformer.initialState({ gameParams: defaultParams, names: room.map(([name, _]) => name) });
+                        const iterator = new GameStateIterator();
+                        const responseValidator = new ResponseValidator();
+                        const driver = new GameDriver(handlers, gameState, iterator, stateTransformer, responseValidator);
                         driver.start();
                     } catch (e) {
                         console.error(e);
